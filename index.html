@@ -67,15 +67,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd-top{display:grid;grid-template-columns:130px 100px 50px 1fr 1fr;padding:6px 12px 0;background:var(--bg3);gap:6px}
-.stbl-hd-bot{display:grid;grid-template-columns:130px 100px 50px 78px 78px;padding:3px 12px 6px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
+.stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
 
 .th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
-.th-grp{font-family:var(--mono);font-size:8px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;border-bottom:.5px solid var(--border2);padding-bottom:3px}
-.th-grp.blu{color:var(--bs);border-color:rgba(59,130,246,.3)}
-.th-grp.red{color:var(--rs);border-color:rgba(239,68,68,.3)}
-.th-phase{font-family:var(--mono);font-size:9px;color:var(--muted)}
-.th-phase2{color:var(--amb);opacity:.8}
+.th.blu{color:var(--bs)}
+.th.red{color:var(--rs)}
 
 .grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px;gap:6px;padding:0 12px;align-items:center}
 
@@ -185,12 +181,16 @@ canvas{display:block}
     <div class="sec">Baseline Inputs</div>
     <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="4500000"></div>
     <div class="ig">
+      <div class="ig-lbl">Total ARR ($) <em id="total-mrr-hint"></em></div>
+      <input class="fi" type="number" id="in-total-arr" value="177000">
+    </div>
+    <div class="ig">
       <div class="ig-lbl"><span style="color:var(--cyans)">PLG</span> ARR ($) <em id="plg-mrr-hint"></em></div>
       <input class="fi" type="number" id="in-plg-arr" value="67000">
     </div>
     <div class="ig">
       <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> ARR ($) <em id="slg-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-slg-arr" value="110000">
+      <input class="fi" type="number" id="in-slg-arr" value="110000" disabled style="opacity:.55">
     </div>
     <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="355000"></div>
 
@@ -212,17 +212,12 @@ canvas{display:block}
   <!-- TABLE -->
   <div class="rcol">
   <div class="stbl">
-    <div class="stbl-hd-top">
-      <div></div><div></div><div></div>
-      <div class="th-grp blu">New ARR %</div>
-      <div class="th-grp red">$ Churn %</div>
-    </div>
-    <div class="stbl-hd-bot">
+    <div class="stbl-hd">
       <div class="th">Scenario</div>
       <div class="th">Runway</div>
       <div class="th">Motion</div>
-      <div class="th th-phase">/mo</div>
-      <div class="th th-phase">/mo</div>
+      <div class="th blu">ARR % /mo</div>
+      <div class="th red">Churn % /mo</div>
     </div>
 
     <div id="srows"></div>
@@ -302,6 +297,7 @@ const PHASE2_START = 23; // Jan '28
 // ── STATE ─────────────────────────────────────────────────────────────────
 const S = {
   cash:    4500000,
+  totalArr:177000,
   plgArr:  67000,
   slgArr:  110000,
   burn:    355000,
@@ -505,6 +501,7 @@ function updateKPIs(){
   nbEl.textContent=f$(nb); nbEl.className='kc-val '+(nb>0?'col-r':'col-g');
   document.getElementById('kpi-arr').textContent=f$(totalArr);
   document.getElementById('kpi-mrr-sub').textContent='MRR '+f$(totalMrr)+'/mo';
+  document.getElementById('total-mrr-hint').textContent='MRR='+f$(S.totalArr/12);
   document.getElementById('plg-mrr-hint').textContent='MRR='+f$(S.plgArr/12);
   document.getElementById('slg-mrr-hint').textContent='MRR='+f$(S.slgArr/12);
   document.getElementById('kpi-plgch').textContent=fPct(S.sc.S2.plgC)+'/mo';
@@ -723,8 +720,18 @@ function refresh(){
 function init(){
   document.getElementById('in-cash').addEventListener('input',function(){const v=parseFloat(this.value);if(!isNaN(v)){S.cash=v;refresh();}});
   document.getElementById('in-burn').addEventListener('input',function(){const v=parseFloat(this.value);if(!isNaN(v)){S.burn=v;refresh();}});
-  document.getElementById('in-plg-arr').addEventListener('input',function(){const v=parseFloat(this.value);if(!isNaN(v)){S.plgArr=v;refresh();}});
-  document.getElementById('in-slg-arr').addEventListener('input',function(){const v=parseFloat(this.value);if(!isNaN(v)){S.slgArr=v;refresh();}});
+  document.getElementById('in-total-arr').addEventListener('input',function(){
+    const v=parseFloat(this.value);if(isNaN(v))return;
+    S.totalArr=v; S.slgArr=Math.max(v-S.plgArr,0);
+    document.getElementById('in-slg-arr').value=S.slgArr;
+    refresh();
+  });
+  document.getElementById('in-plg-arr').addEventListener('input',function(){
+    const v=parseFloat(this.value);if(isNaN(v))return;
+    S.plgArr=v; S.slgArr=Math.max(S.totalArr-v,0);
+    document.getElementById('in-slg-arr').value=S.slgArr;
+    refresh();
+  });
   document.getElementById('in-fund-amt').addEventListener('input',function(){S.fundAmt=parseFloat(this.value)||0;refresh();});
   document.getElementById('in-fund-mo').addEventListener('change',function(){const v=parseInt(this.value);if(!isNaN(v)){S.fundMo=v;refresh();}});
   initChart();initArrChart();refresh();
