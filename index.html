@@ -582,10 +582,10 @@ function renderScRows(){
     const sc=S.sc[id], meta=SC_META[id];
     const disabled=opts.disabled;
     const plgCells=disabled
-      ? `<div>${inpD(sc.plgG)}</div><div>${inpD(sc.plgC)}</div>`
+      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`
       : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgC',1)}</div>`;
     const slgCells=disabled
-      ? `<div>${inpD(sc.slgG)}</div><div>${inpD(sc.slgC)}</div>`
+      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`
       : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgC',1)}</div>`;
     const nameHtml=meta.isPlan?`${meta.name}<span class="plan-badge">plan</span>`:meta.name;
     const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
