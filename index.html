@@ -67,8 +67,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd-top{display:grid;grid-template-columns:148px 100px 138px 172px 62px;padding:6px 12px 0;background:var(--bg3);gap:6px}
-.stbl-hd-bot{display:grid;grid-template-columns:148px 100px 65px 65px 80px 84px 62px;padding:3px 12px 6px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
+.stbl-hd-top{display:grid;grid-template-columns:130px 100px 50px 130px 164px;padding:6px 12px 0;background:var(--bg3);gap:6px}
+.stbl-hd-bot{display:grid;grid-template-columns:130px 100px 50px 62px 62px 78px 78px;padding:3px 12px 6px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
 
 .th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
 .th-grp{font-family:var(--mono);font-size:8px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;border-bottom:.5px solid var(--border2);padding-bottom:3px}
@@ -77,7 +77,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .th-phase{font-family:var(--mono);font-size:9px;color:var(--muted)}
 .th-phase2{color:var(--amb);opacity:.8}
 
-.grid7{display:grid;grid-template-columns:148px 100px 65px 65px 80px 84px 62px;gap:6px;padding:0 12px;align-items:center}
+.grid6{display:grid;grid-template-columns:130px 100px 50px 62px 62px 78px 78px;gap:6px;padding:0 12px;align-items:center}
+
+/* 2-row scenario block: left info | runway | rates grid */
+.sc-2row{display:grid;grid-template-columns:130px 100px 1fr;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
+.sc-2row-left{align-self:center}
+.sc-2row-rw{align-self:center}
+.sc-2row-rates{display:flex;flex-direction:column;gap:3px}
+.sc-rate-row{display:grid;grid-template-columns:50px 62px 62px 78px 78px;gap:6px;align-items:center}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .srow-parent{padding-top:8px;padding-bottom:5px}
@@ -206,19 +213,18 @@ canvas{display:block}
   <div class="rcol">
   <div class="stbl">
     <div class="stbl-hd-top">
-      <div></div><div></div>
+      <div></div><div></div><div></div>
       <div class="th-grp blu">New ARR % /mo</div>
       <div class="th-grp red">$ Churn % /mo</div>
-      <div class="th-grp">Exp</div>
     </div>
     <div class="stbl-hd-bot">
       <div class="th">Scenario</div>
       <div class="th">Runway</div>
+      <div class="th">Motion</div>
       <div class="th th-phase">'26–'27</div>
       <div class="th th-phase th-phase2">'28–'29</div>
       <div class="th th-phase">'26–'27</div>
       <div class="th th-phase th-phase2">'28–'29</div>
-      <div class="th">Growth</div>
     </div>
 
     <div id="srows"></div>
@@ -569,90 +575,51 @@ function renderScRows(){
   let html='';
 
   // ── S0 — single row, pure burn ──
-  html+=`<div class="grid7 srow" style="opacity:0.7">
-    <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue or adjustments.</div></div>
+  html+=`<div class="grid6 srow" style="opacity:0.65">
+    <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue.</div></div>
     <div>${rwCell('S0')}</div>
-    <div>${inpD(0)}</div><div>${inpD(0)}</div><div>${inpD(0)}</div><div>${inpD(0)}</div>
-    <div>${inpD(0)}</div>
+    <div></div>
+    <div></div><div></div><div></div><div></div>
   </div>`;
 
-  // ── S1 — greyed out inputs ──
-  html+=`<div class="grid7 srow-parent">
-    <div><div class="sn-name">S1 Conservative</div><div class="sn-desc">Current run rates.</div></div>
-    <div>${rwCell('S1')}</div>
-    <div></div><div></div><div></div><div></div>
-    <div class="sc-inp-wrap">${inpD(S.sc.S1.expGrowth)}<div style="font-size:8px;color:var(--muted);font-family:var(--mono);text-align:center;margin-top:1px">COGS</div></div>
-  </div>
-  <div class="grid7 srow-sub" style="background:rgba(6,182,212,0.018);opacity:0.7">
-    <div class="sub-label-cell"><span class="sub-badge plg-badge">PLG</span></div>
-    <div></div>
-    <div>${inpD(S.sc.S1.plgG)}</div>
-    <div>${inpD(S.sc.S1.plgG2)}</div>
-    <div>${inpD(S.sc.S1.plgC)}</div>
-    <div>${inpD(S.sc.S1.plgC2)}</div>
-    <div></div>
-  </div>
-  <div class="grid7 srow-sub block-sep" style="background:rgba(167,139,250,0.015);opacity:0.7;border-bottom:.5px solid var(--border)">
-    <div class="sub-label-cell"><span class="sub-badge slg-badge">SLG</span></div>
-    <div></div>
-    <div>${inpD(S.sc.S1.slgG)}</div>
-    <div>${inpD(S.sc.S1.slgG2)}</div>
-    <div>${inpD(S.sc.S1.slgC)}</div>
-    <div>${inpD(S.sc.S1.slgC2)}</div>
-    <div></div>
-  </div>`;
+  // Helper for 2-row scenario blocks
+  function scBlock(id, opts){
+    const sc=S.sc[id], meta=SC_META[id];
+    const cls1=opts.cls||'', cls2=opts.cls||'';
+    const disabled=opts.disabled;
+    const plgCells=disabled
+      ? `<div>${inpD(sc.plgG)}</div><div>${inpD(sc.plgG2)}</div><div>${inpD(sc.plgC)}</div><div>${inpD(sc.plgC2)}</div>`
+      : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgG2',1)}</div><div>${inpE(id,'plgC',1)}</div><div>${inpE(id,'plgC2',1)}</div>`;
+    const slgCells=disabled
+      ? `<div>${inpD(sc.slgG)}</div><div>${inpD(sc.slgG2)}</div><div>${inpD(sc.slgC)}</div><div>${inpD(sc.slgC2)}</div>`
+      : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgG2',1)}</div><div>${inpE(id,'slgC',1)}</div><div>${inpE(id,'slgC2',1)}</div>`;
+    const nameHtml=meta.isPlan?`${meta.name}<span class="plan-badge">plan</span>`:meta.name;
+    const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
+    const borderTop=opts.borderTop?'border-top:.5px solid var(--border);':'';
+    const planBg=meta.isPlan?'background:var(--plan-bg);border-left:2px solid var(--blu);':'';
 
-  // ── S2 ──
-  html+=`<div class="grid7 srow-parent plan">
-    <div><div class="sn-name">S2 Realistic<span class="plan-badge">plan</span></div><div class="sn-desc">PLG + SLG plan case.</div></div>
-    <div>${rwCell('S2')}</div>
-    <div></div><div></div><div></div><div></div>
-    <div class="sc-inp-wrap">${inpE('S2','expGrowth',0.5)}<div style="font-size:8px;color:var(--muted);font-family:var(--mono);text-align:center;margin-top:1px">COGS</div></div>
-  </div>
-  <div class="grid7 srow-sub plan-sub" style="background:rgba(6,182,212,0.028)">
-    <div class="sub-label-cell"><span class="sub-badge plg-badge">PLG</span></div>
-    <div></div>
-    <div>${inpE('S2','plgG',1)}</div>
-    <div>${inpE('S2','plgG2',1)}</div>
-    <div>${inpE('S2','plgC',1)}</div>
-    <div>${inpE('S2','plgC2',1)}</div>
-    <div></div>
-  </div>
-  <div class="grid7 srow-sub plan-sub block-sep" style="background:rgba(167,139,250,0.02)">
-    <div class="sub-label-cell"><span class="sub-badge slg-badge">SLG</span></div>
-    <div></div>
-    <div>${inpE('S2','slgG',1)}</div>
-    <div>${inpE('S2','slgG2',1)}</div>
-    <div>${inpE('S2','slgC',1)}</div>
-    <div>${inpE('S2','slgC2',1)}</div>
-    <div></div>
-  </div>`;
+    return `<div class="sc-2row" style="${planBg}${borderTop}${opacity}">
+      <div class="sc-2row-left">
+        <div class="sn-name">${nameHtml}</div>
+        <div class="sn-desc">${meta.desc}</div>
+      </div>
+      <div class="sc-2row-rw">${rwCell(id)}</div>
+      <div class="sc-2row-rates">
+        <div class="sc-rate-row">
+          <div><span class="sub-badge plg-badge">PLG</span></div>
+          ${plgCells}
+        </div>
+        <div class="sc-rate-row">
+          <div><span class="sub-badge slg-badge">SLG</span></div>
+          ${slgCells}
+        </div>
+      </div>
+    </div>`;
+  }
 
-  // ── S3 ──
-  html+=`<div class="grid7 srow-parent" style="border-top:.5px solid var(--border)">
-    <div><div class="sn-name">S3 Optimistic</div><div class="sn-desc">Funding applied if entered.</div></div>
-    <div>${rwCell('S3')}</div>
-    <div></div><div></div><div></div><div></div>
-    <div class="sc-inp-wrap">${inpE('S3','expGrowth',0.5)}<div style="font-size:8px;color:var(--muted);font-family:var(--mono);text-align:center;margin-top:1px">COGS</div></div>
-  </div>
-  <div class="grid7 srow-sub" style="background:rgba(6,182,212,0.018)">
-    <div class="sub-label-cell"><span class="sub-badge plg-badge">PLG</span></div>
-    <div></div>
-    <div>${inpE('S3','plgG',1)}</div>
-    <div>${inpE('S3','plgG2',1)}</div>
-    <div>${inpE('S3','plgC',1)}</div>
-    <div>${inpE('S3','plgC2',1)}</div>
-    <div></div>
-  </div>
-  <div class="grid7 srow-sub" style="background:rgba(167,139,250,0.015)">
-    <div class="sub-label-cell"><span class="sub-badge slg-badge">SLG</span></div>
-    <div></div>
-    <div>${inpE('S3','slgG',1)}</div>
-    <div>${inpE('S3','slgG2',1)}</div>
-    <div>${inpE('S3','slgC',1)}</div>
-    <div>${inpE('S3','slgC2',1)}</div>
-    <div></div>
-  </div>`;
+  html+=scBlock('S1',{disabled:true,opacity:0.7,borderTop:true});
+  html+=scBlock('S2',{disabled:false,borderTop:true});
+  html+=scBlock('S3',{disabled:false,borderTop:true});
 
   document.getElementById('srows').innerHTML=html;
   document.getElementById('shared-adj').innerHTML=sharedAdjHTML();
