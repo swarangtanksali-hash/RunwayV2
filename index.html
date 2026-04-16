@@ -48,10 +48,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .kc-val{font-family:var(--mono);font-size:15px;font-weight:600;line-height:1.1}
 .kc-sub{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 
-/* NEW LAYOUT: full-width top, then table+charts side by side */
-.layout{display:grid;grid-template-columns:220px 1fr;gap:8px;align-items:start}
-
-.main-area{display:grid;grid-template-columns:1fr 340px;gap:8px;align-items:start}
+/* MASTER LAYOUT: 60% LHS (everything) / 40% RHS (charts) */
+.master-layout{display:grid;grid-template-columns:60% 40%;gap:10px;align-items:start;min-height:0}
+.lhs{display:flex;flex-direction:column;gap:8px;min-width:0}
+.lhs-inputs-table{display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:start}
+.charts-col{display:flex;flex-direction:column;gap:8px;position:sticky;top:8px}
 
 .lp{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;padding:12px;box-shadow:var(--shadow);position:sticky;top:8px}
 .sec{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:.5px solid var(--border)}
@@ -63,8 +64,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .hr{border:none;border-top:.5px solid var(--border);margin:8px 0}
 .fund-impact{font-size:10px;color:var(--gs);font-family:var(--mono);line-height:1.5;margin-top:5px;padding:6px 8px;background:rgba(34,197,94,.05);border:.5px solid rgba(34,197,94,.15);border-radius:4px;display:none}
 
-.rcol{display:flex;flex-direction:column;gap:8px}
-.charts-col{display:flex;flex-direction:column;gap:8px}
+.rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
 .stbl-hd-top{display:grid;grid-template-columns:148px 100px 138px 172px 62px;padding:6px 12px 0;background:var(--bg3);gap:6px}
@@ -153,6 +153,11 @@ canvas{display:block}
   <span class="live">LIVE</span>
 </div>
 
+<div class="master-layout">
+
+<!-- LHS: Everything except charts -->
+<div class="lhs">
+
 <div class="exec">
   <div class="exec-lbl">Executive Summary</div>
   <div class="exec-body" id="exec-body">Loading…</div>
@@ -167,8 +172,7 @@ canvas{display:block}
   <div class="kc"><div class="kc-lbl">S2 SLG Churn</div><div class="kc-val col-r" id="kpi-slgch">—</div><div class="kc-sub" id="kpi-slgch-ann">—</div></div>
 </div>
 
-<div class="layout">
-
+<div class="lhs-inputs-table">
   <!-- LEFT PANEL -->
   <div class="lp">
     <div class="sec">Baseline Inputs</div>
@@ -198,92 +202,88 @@ canvas{display:block}
     <div class="fund-impact" id="fund-impact"></div>
   </div>
 
-  <!-- MAIN AREA: table + charts side by side -->
-  <div class="main-area">
-
-    <!-- TABLE -->
-    <div class="rcol">
-    <div class="stbl">
-      <div class="stbl-hd-top">
-        <div></div><div></div>
-        <div class="th-grp blu">New ARR % /mo</div>
-        <div class="th-grp red">$ Churn % /mo</div>
-        <div class="th-grp">Exp</div>
-      </div>
-      <div class="stbl-hd-bot">
-        <div class="th">Scenario</div>
-        <div class="th">Runway</div>
-        <div class="th th-phase">'26–'27</div>
-        <div class="th th-phase th-phase2">'28–'29</div>
-        <div class="th th-phase">'26–'27</div>
-        <div class="th th-phase th-phase2">'28–'29</div>
-        <div class="th">Growth</div>
-      </div>
-
-      <div id="srows"></div>
-
-      <div style="padding:5px 12px;background:var(--bg3);border-top:.5px solid var(--border);font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5">
-        <span style="color:var(--bs)">NEW ARR</span> = Net new + Expansion on the opening ARR base each month &nbsp;·&nbsp;
-        <span style="color:var(--rs)">$ Churn</span> = ARR $ lost as % of opening ARR (not logo churn) &nbsp;·&nbsp;
-        <span style="color:var(--cyans)">PLG</span> $67K · <span style="color:var(--pur)">SLG</span> $110K starting ARR
-      </div>
-
-      <!-- SHARED ADJUSTMENTS -->
-      <div style="padding:8px 12px;background:var(--bg2);border-top:.5px solid var(--border)">
-        <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Adjustments — Applied to S2 &amp; S3</div>
-        <div class="ev-col" id="shared-adj"></div>
-      </div>
-      <div class="ev-form-wrap" id="ev-form-wrap">
-        <div class="ev-form-inner">
-          <input class="ef-name-in" type="text" id="ef-name" placeholder="Label (e.g. ACME deal)">
-          <select class="ef-type-in" id="ef-type" onchange="toggleRecurring()">
-            <option value="expense">Expense</option>
-            <option value="income">Income / Savings</option>
-            <option value="arr">ARR</option>
-          </select>
-          <select class="ef-recur" id="ef-recur" onchange="toggleRecurring()">
-            <option value="onetime">One-time</option>
-            <option value="recurring">Recurring</option>
-          </select>
-          <input class="ef-amt-in" type="number" id="ef-amt" placeholder="Amount $">
-          <select id="ef-mo"><option value="">Month…</option></select>
-          <select id="ef-mo-end"><option value="">To month…</option></select>
-          <button class="btn-ok" onclick="saveEvent()">Add</button>
-          <button class="btn-no" onclick="closeForm()">Cancel</button>
-        </div>
-        <div style="font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:5px" id="ef-hint">Month 1=Apr '26 … 21=Dec '27 … 45=Dec '29.</div>
-      </div>
+  <!-- TABLE -->
+  <div class="rcol">
+  <div class="stbl">
+    <div class="stbl-hd-top">
+      <div></div><div></div>
+      <div class="th-grp blu">New ARR % /mo</div>
+      <div class="th-grp red">$ Churn % /mo</div>
+      <div class="th-grp">Exp</div>
     </div>
+    <div class="stbl-hd-bot">
+      <div class="th">Scenario</div>
+      <div class="th">Runway</div>
+      <div class="th th-phase">'26–'27</div>
+      <div class="th th-phase th-phase2">'28–'29</div>
+      <div class="th th-phase">'26–'27</div>
+      <div class="th th-phase th-phase2">'28–'29</div>
+      <div class="th">Growth</div>
     </div>
 
-    <!-- CHARTS COLUMN -->
-    <div class="charts-col">
-      <!-- CASH CHART -->
-      <div class="chart-card">
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Cash Runway</div>
-        <div class="c-leg">
-          <div class="c-li"><div class="c-line" style="background:var(--red)"></div>S1</div>
-          <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
-          <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
-          <div class="c-li"><div class="c-line" style="border-top:2px dashed #555;background:none;height:0;width:18px;border-radius:0"></div>Hyp.</div>
-        </div>
-        <div id="cash-exhaustion-box" style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;margin-bottom:4px;letter-spacing:.04em"></div>
-        <canvas id="chart" height="120"></canvas>
-      </div>
+    <div id="srows"></div>
 
-      <!-- ARR CHART -->
-      <div class="chart-card">
-        <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">ARR Growth by Scenario</div>
-        <div class="c-leg">
-          <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
-          <div class="c-li"><div class="c-line" style="background:var(--cyans)"></div>PLG</div>
-          <div class="c-li"><div class="c-line" style="background:var(--pur)"></div>SLG</div>
-          <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
-        </div>
-        <canvas id="arr-chart" height="120"></canvas>
-      </div>
+    <div style="padding:5px 12px;background:var(--bg3);border-top:.5px solid var(--border);font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5">
+      <span style="color:var(--bs)">NEW ARR</span> = Net new + Expansion on the opening ARR base each month &nbsp;·&nbsp;
+      <span style="color:var(--rs)">$ Churn</span> = ARR $ lost as % of opening ARR (not logo churn) &nbsp;·&nbsp;
+      <span style="color:var(--cyans)">PLG</span> $67K · <span style="color:var(--pur)">SLG</span> $110K starting ARR
     </div>
 
+    <!-- SHARED ADJUSTMENTS -->
+    <div style="padding:8px 12px;background:var(--bg2);border-top:.5px solid var(--border)">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Adjustments — Applied to S2 &amp; S3</div>
+      <div class="ev-col" id="shared-adj"></div>
+    </div>
+    <div class="ev-form-wrap" id="ev-form-wrap">
+      <div class="ev-form-inner">
+        <input class="ef-name-in" type="text" id="ef-name" placeholder="Label (e.g. ACME deal)">
+        <select class="ef-type-in" id="ef-type" onchange="toggleRecurring()">
+          <option value="expense">Expense</option>
+          <option value="income">Income / Savings</option>
+          <option value="arr">ARR</option>
+        </select>
+        <select class="ef-recur" id="ef-recur" onchange="toggleRecurring()">
+          <option value="onetime">One-time</option>
+          <option value="recurring">Recurring</option>
+        </select>
+        <input class="ef-amt-in" type="number" id="ef-amt" placeholder="Amount $">
+        <select id="ef-mo"><option value="">Month…</option></select>
+        <select id="ef-mo-end"><option value="">To month…</option></select>
+        <button class="btn-ok" onclick="saveEvent()">Add</button>
+        <button class="btn-no" onclick="closeForm()">Cancel</button>
+      </div>
+      <div style="font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:5px" id="ef-hint">Month 1=Apr '26 … 21=Dec '27 … 45=Dec '29.</div>
+    </div>
+  </div>
+  </div>
+</div>
+
+</div>
+
+<!-- RHS: Charts only -->
+<div class="charts-col">
+  <!-- CASH CHART -->
+  <div class="chart-card">
+    <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Cash Runway</div>
+    <div class="c-leg">
+      <div class="c-li"><div class="c-line" style="background:var(--red)"></div>S1</div>
+      <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
+      <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
+      <div class="c-li"><div class="c-line" style="border-top:2px dashed #555;background:none;height:0;width:18px;border-radius:0"></div>Hyp.</div>
+    </div>
+    <div id="cash-exhaustion-box" style="font-family:var(--mono);font-size:8px;color:var(--muted);margin-top:2px;margin-bottom:4px;letter-spacing:.04em"></div>
+    <canvas id="chart" height="140"></canvas>
+  </div>
+
+  <!-- ARR CHART -->
+  <div class="chart-card">
+    <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Total ARR by Scenario</div>
+    <div class="c-leg">
+      <div class="c-li"><div class="c-line" style="background:var(--red)"></div>S1</div>
+      <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
+      <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
+    </div>
+    <canvas id="arr-chart" height="140"></canvas>
   </div>
 </div>
 
@@ -717,19 +717,17 @@ function initArrChart(){
   const ctx=document.getElementById('arr-chart').getContext('2d');
   const labels=Array.from({length:HORIZON+1},(_,i)=>i===0?"Apr '26":moLbl(i+1));
   arrChart=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {label:'S1 Total',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
     {label:'S2 Total',data:[],borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.2},
-    {label:'S2 PLG', data:[],borderColor:'#06b6d4',backgroundColor:'transparent',borderWidth:1.5,borderDash:[3,2],pointRadius:0,tension:0.2},
-    {label:'S2 SLG', data:[],borderColor:'#a78bfa',backgroundColor:'transparent',borderWidth:1.5,borderDash:[3,2],pointRadius:0,tension:0.2},
     {label:'S3 Total',data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
   ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2535',borderColor:'rgba(255,255,255,0.07)',borderWidth:.5,titleColor:'#9ca3af',bodyColor:'#e8eaf0',titleFont:{family:"'IBM Plex Mono',monospace",size:9},bodyFont:{family:"'IBM Plex Mono',monospace",size:10},callbacks:{label:c=>` ${c.dataset.label}: ${fs$(c.parsed.y)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},maxRotation:45,autoSkip:true,maxTicksLimit:8},border:{color:'rgba(255,255,255,0.07)'}},y:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},callback:v=>fs$(v)},border:{color:'rgba(255,255,255,0.07)'}}}}});
 }
 function updateArrChart(){
   if(!arrChart)return;
-  const s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
-  arrChart.data.datasets[0].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]);
-  arrChart.data.datasets[1].data=s2.plgArr;
-  arrChart.data.datasets[2].data=s2.slgArr;
-  arrChart.data.datasets[3].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]);
+  const s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
+  arrChart.data.datasets[0].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]);
+  arrChart.data.datasets[1].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]);
+  arrChart.data.datasets[2].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]);
   arrChart.update('none');
 }
 
