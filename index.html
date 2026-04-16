@@ -67,8 +67,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd-top{display:grid;grid-template-columns:130px 100px 50px 130px 164px;padding:6px 12px 0;background:var(--bg3);gap:6px}
-.stbl-hd-bot{display:grid;grid-template-columns:130px 100px 50px 62px 62px 78px 78px;padding:3px 12px 6px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
+.stbl-hd-top{display:grid;grid-template-columns:130px 100px 50px 1fr 1fr;padding:6px 12px 0;background:var(--bg3);gap:6px}
+.stbl-hd-bot{display:grid;grid-template-columns:130px 100px 50px 78px 78px;padding:3px 12px 6px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
 
 .th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
 .th-grp{font-family:var(--mono);font-size:8px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;border-bottom:.5px solid var(--border2);padding-bottom:3px}
@@ -77,14 +77,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .th-phase{font-family:var(--mono);font-size:9px;color:var(--muted)}
 .th-phase2{color:var(--amb);opacity:.8}
 
-.grid6{display:grid;grid-template-columns:130px 100px 50px 62px 62px 78px 78px;gap:6px;padding:0 12px;align-items:center}
+.grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px;gap:6px;padding:0 12px;align-items:center}
 
 /* 2-row scenario block: left info | runway | rates grid */
 .sc-2row{display:grid;grid-template-columns:130px 100px 1fr;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
-.sc-rate-row{display:grid;grid-template-columns:50px 62px 62px 78px 78px;gap:6px;align-items:center}
+.sc-rate-row{display:grid;grid-template-columns:50px 78px 78px;gap:6px;align-items:center}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .srow-parent{padding-top:8px;padding-bottom:5px}
@@ -113,7 +113,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .sc-inp-row{display:flex;align-items:center;gap:2px}
 .sc-inp{flex:1;min-width:0;padding:4px 4px;background:var(--bg4);border:.5px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--mono);font-size:11px;text-align:right;outline:none;transition:border-color .15s}
 .sc-inp:focus{border-color:var(--blu)}
-.sc-inp:disabled{opacity:.35;cursor:not-allowed;background:var(--bg3)}
+.sc-inp:disabled{opacity:.55;cursor:not-allowed;background:var(--bg3)}
 .sc-step{width:18px;height:22px;background:var(--bg3);border:.5px solid var(--border);color:var(--dim);font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none}
 .sc-step:hover{background:var(--bg4);color:var(--text)}
 .sc-step:active{background:var(--blu);color:#fff}
@@ -214,17 +214,15 @@ canvas{display:block}
   <div class="stbl">
     <div class="stbl-hd-top">
       <div></div><div></div><div></div>
-      <div class="th-grp blu">New ARR % /mo</div>
-      <div class="th-grp red">$ Churn % /mo</div>
+      <div class="th-grp blu">New ARR %</div>
+      <div class="th-grp red">$ Churn %</div>
     </div>
     <div class="stbl-hd-bot">
       <div class="th">Scenario</div>
       <div class="th">Runway</div>
       <div class="th">Motion</div>
-      <div class="th th-phase">'26–'27</div>
-      <div class="th th-phase th-phase2">'28–'29</div>
-      <div class="th th-phase">'26–'27</div>
-      <div class="th th-phase th-phase2">'28–'29</div>
+      <div class="th th-phase">/mo</div>
+      <div class="th th-phase">/mo</div>
     </div>
 
     <div id="srows"></div>
@@ -579,20 +577,19 @@ function renderScRows(){
     <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue.</div></div>
     <div>${rwCell('S0')}</div>
     <div></div>
-    <div></div><div></div><div></div><div></div>
+    <div></div><div></div>
   </div>`;
 
   // Helper for 2-row scenario blocks
   function scBlock(id, opts){
     const sc=S.sc[id], meta=SC_META[id];
-    const cls1=opts.cls||'', cls2=opts.cls||'';
     const disabled=opts.disabled;
     const plgCells=disabled
-      ? `<div>${inpD(sc.plgG)}</div><div>${inpD(sc.plgG2)}</div><div>${inpD(sc.plgC)}</div><div>${inpD(sc.plgC2)}</div>`
-      : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgG2',1)}</div><div>${inpE(id,'plgC',1)}</div><div>${inpE(id,'plgC2',1)}</div>`;
+      ? `<div>${inpD(sc.plgG)}</div><div>${inpD(sc.plgC)}</div>`
+      : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgC',1)}</div>`;
     const slgCells=disabled
-      ? `<div>${inpD(sc.slgG)}</div><div>${inpD(sc.slgG2)}</div><div>${inpD(sc.slgC)}</div><div>${inpD(sc.slgC2)}</div>`
-      : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgG2',1)}</div><div>${inpE(id,'slgC',1)}</div><div>${inpE(id,'slgC2',1)}</div>`;
+      ? `<div>${inpD(sc.slgG)}</div><div>${inpD(sc.slgC)}</div>`
+      : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgC',1)}</div>`;
     const nameHtml=meta.isPlan?`${meta.name}<span class="plan-badge">plan</span>`:meta.name;
     const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
     const borderTop=opts.borderTop?'border-top:.5px solid var(--border);':'';
@@ -617,7 +614,7 @@ function renderScRows(){
     </div>`;
   }
 
-  html+=scBlock('S1',{disabled:true,opacity:0.7,borderTop:true});
+  html+=scBlock('S1',{disabled:true,opacity:0.85,borderTop:true});
   html+=scBlock('S2',{disabled:false,borderTop:true});
   html+=scBlock('S3',{disabled:false,borderTop:true});
 
