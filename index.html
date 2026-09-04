@@ -65,16 +65,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
+.stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px 88px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
 .th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
 .th.blu{color:var(--bs)}.th.red{color:var(--rs)}
-.grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px;gap:6px;padding:0 12px;align-items:center}
+.grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px 88px;gap:6px;padding:0 12px;align-items:center}
 
-.sc-2row{display:grid;grid-template-columns:130px 100px 1fr;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
+.sc-2row{display:grid;grid-template-columns:130px 100px 1fr 88px;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
 .sc-rate-row{display:grid;grid-template-columns:50px 78px 78px;gap:6px;align-items:center}
+.sc-2row-toggles{align-self:center;display:flex;flex-direction:column;gap:6px;padding-left:4px}
+.tog-row{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px}
+.tog-btn{width:36px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.tog-btn::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
+.tog-btn.on{background:var(--blu)}
+.tog-btn.on::after{left:20px}
+.tog-btn.off{background:var(--bg4)}
+.tog-btn-fund.on{background:var(--grn)}
+.tog-btn-fund.off{background:var(--bg4)}
+.tog-btn:disabled{opacity:0.3;cursor:not-allowed}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .srow-parent{padding-top:8px;padding-bottom:5px}
@@ -203,7 +213,20 @@ canvas{display:block}
     <div class="ig"><div class="ig-lbl">Closes in Month</div>
       <select class="fi" id="in-fund-mo"></select>
     </div>
-    <div class="fund-impact" id="fund-impact"></div>
+    <div class="ig">
+      <div class="ig-lbl">Apply to Scenarios</div>
+      <div style="display:flex;gap:10px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--rs);cursor:pointer">
+          <input type="checkbox" id="fund-s1" onchange="toggleFundScenario('S1',this.checked)" style="accent-color:var(--red);width:12px;height:12px"> S1
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--bs);cursor:pointer">
+          <input type="checkbox" id="fund-s2" onchange="toggleFundScenario('S2',this.checked)" style="accent-color:var(--blu);width:12px;height:12px"> S2
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--gs);cursor:pointer">
+          <input type="checkbox" id="fund-s3" checked onchange="toggleFundScenario('S3',this.checked)" style="accent-color:var(--grn);width:12px;height:12px"> S3
+        </label>
+      </div>
+    </div>
   </div>
 
   <div class="rcol">
@@ -214,6 +237,7 @@ canvas{display:block}
       <div class="th">Motion</div>
       <div class="th blu">ARR % /mo</div>
       <div class="th red">Churn % /mo</div>
+      <div class="th" style="color:var(--as)">Adj · Fund</div>
     </div>
 
     <div id="srows"></div>
@@ -225,7 +249,7 @@ canvas{display:block}
     </div>
 
     <div style="padding:8px 12px;background:var(--bg2);border-top:.5px solid var(--border)">
-      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Adjustments — Applied to S2 &amp; S3</div>
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Adjustments <span style="color:var(--bs);font-size:8px;letter-spacing:.04em;text-transform:none">— toggle per scenario above</span></div>
       <div class="ev-col" id="shared-adj"></div>
     </div>
     <div class="ev-form-wrap" id="ev-form-wrap">
@@ -270,7 +294,6 @@ canvas{display:block}
   <div class="chart-card">
     <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Total ARR by Scenario</div>
     <div class="c-leg">
-      <div class="c-li"><div class="c-line" style="border-top:2px dashed #6b7280;background:none;height:0;width:18px;border-radius:0"></div>S0</div>
       <div class="c-li"><div class="c-line" style="background:var(--red)"></div>S1</div>
       <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
       <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
@@ -302,15 +325,17 @@ const S = {
   slgArr:  214000,
   burn:    290000,
   fundAmt: 0,
-  fundMo:  1,      // relative to start month (1 = start month itself)
-  startMonthOffset: 5, // 0-based from Apr'26: 5 = Sep'26
+  fundMo:  1,
+  startMonthOffset: 5,
+  fundScenarios: {S1:false, S2:false, S3:true},
+  adjScenarios:  {S1:false, S2:true,  S3:true},
   events: [],
   arrEvents: [],
   sc: {
-    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,   slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false, useFunding:false },
-    S1: { plgG:9,  plgG2:9,  plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:7.5, slgC2:10, expGrowth:0, useRevenue:true,  useEvents:true,  useFunding:false },
-    S2: { plgG:10, plgG2:10, plgC:13, plgC2:11, slgG:15, slgG2:15, slgC:5,   slgC2:4,  expGrowth:0, useRevenue:true,  useEvents:true,  useFunding:false },
-    S3: { plgG:15, plgG2:10, plgC:11, plgC2:9,  slgG:20, slgG2:15, slgC:4,   slgC2:3,  expGrowth:0, useRevenue:true,  useEvents:true,  useFunding:true  },
+    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,   slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false },
+    S1: { plgG:9,  plgG2:9,  plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:7.5, slgC2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S2: { plgG:10, plgG2:10, plgC:13, plgC2:11, slgG:15, slgG2:15, slgC:5,   slgC2:4,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S3: { plgG:15, plgG2:10, plgC:11, plgC2:9,  slgG:20, slgG2:15, slgC:4,   slgC2:3,  expGrowth:0, useRevenue:true,  useEvents:true  },
   }
 };
 let nextId = 1;
@@ -407,7 +432,9 @@ function makeCfg(id){
          slgG:sc.slgG, slgG2:sc.slgG2, slgC:sc.slgC, slgC2:sc.slgC2,
          expGrowth:sc.expGrowth, fundAmt:S.fundAmt, fundMo:S.fundMo,
          events:S.events, arrEvents:S.arrEvents,
-         useRevenue:sc.useRevenue, useEvents:sc.useEvents, useFunding:sc.useFunding,
+         useRevenue:sc.useRevenue,
+         useEvents: id==='S0' ? false : (S.adjScenarios[id]||false),
+         useFunding: id==='S0' ? false : (S.fundScenarios[id]||false),
          phase2Start:getPhase2Rel()};
 }
 function runSc(id,horizon){return simulate(makeCfg(id),horizon||HORIZON);}
@@ -528,13 +555,16 @@ function buildExec(){
   }
 
   if(S.fundAmt>0){
-    const s3rw=trueRunway('S3'),delta=s3rw-s3rw_noFund,neEnd=moLbl(Math.round(s3rw));
-    lines.push(`• Funding <span class="ng">${f$(S.fundAmt)}</span> in ${moLbl(S.fundMo)} extends S3 by <span class="ng">${fDelta(delta)}</span> — new end <span class="nb">${neEnd}</span>.`);
+    const fundedIds=['S1','S2','S3'].filter(id=>S.fundScenarios[id]);
+    if(fundedIds.length>0){
+      const colors={S1:'var(--rs)',S2:'var(--bs)',S3:'var(--gs)'};
+      const parts=fundedIds.map(id=>{
+        const rw=trueRunway(id),noF=simulate({...makeCfg(id),useFunding:false},60).runway;
+        return`<span style="color:${colors[id]};font-family:var(--mono)">${id}</span> +${fRwFull(rw-noF)} → ${moLbl(Math.round(rw))}`;
+      }).join(' &nbsp;·&nbsp; ');
+      lines.push(`• Funding <span class="ng">${f$(S.fundAmt)}</span> in ${moLbl(S.fundMo)}: ${parts}.`);
+    }
   }
-
-  const pd1=peakDeficit('S1'),pd2=peakDeficit('S2');
-  const pdFmt=(pd)=>pd.amount<0?`<span class="nr">${fs$(pd.amount)}</span> (${moLbl(pd.month)})`:`<span class="ng">none</span>`;
-  lines.push(`• Peak deficit — S1: ${pdFmt(pd1)} &nbsp;·&nbsp; S2: ${pdFmt(pd2)}`);
 
   return lines.map(l=>`<p style="margin-bottom:5px">${l}</p>`).join('');
 }
@@ -649,6 +679,10 @@ function renderScRows(){
     <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue.</div></div>
     <div>${rwCell('S0')}</div>
     <div></div><div></div><div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;opacity:0.3;padding-left:4px">
+      <div class="tog-row"><button class="tog-btn off" disabled></button><span style="color:var(--muted)">Adj</span></div>
+      <div class="tog-row"><button class="tog-btn tog-btn-fund off" disabled></button><span style="color:var(--muted)">Fund</span></div>
+    </div>
   </div>`;
 
   function scBlock(id, opts){
@@ -664,6 +698,21 @@ function renderScRows(){
     const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
     const borderTop=opts.borderTop?'border-top:.5px solid var(--border);':'';
     const planBg=meta.isPlan?'background:var(--plan-bg);border-left:2px solid var(--blu);':'';
+    const adjOn=S.adjScenarios[id]||false;
+    const fundOn=S.fundScenarios[id]||false;
+    const hasFund=S.fundAmt>0;
+    const adjColor=adjOn?'var(--bs)':'var(--muted)';
+    const fundColor=fundOn?'var(--gs)':'var(--muted)';
+    const togglesHtml=`<div class="sc-2row-toggles">
+      <div class="tog-row">
+        <button class="tog-btn ${adjOn?'on':'off'}" onclick="toggleAdj('${id}')" title="Toggle adjustments"></button>
+        <span style="color:${adjColor};font-size:9px">Adj</span>
+      </div>
+      <div class="tog-row">
+        <button class="tog-btn tog-btn-fund ${fundOn?'on':'off'}" onclick="toggleFundScenario('${id}',${!fundOn})" ${hasFund?'':'style="opacity:0.4"'} title="Toggle funding"></button>
+        <span style="color:${fundColor};font-size:9px">Fund</span>
+      </div>
+    </div>`;
     return `<div class="sc-2row" style="${planBg}${borderTop}${opacity}">
       <div class="sc-2row-left"><div class="sn-name">${nameHtml}</div><div class="sn-desc">${meta.desc}</div></div>
       <div class="sc-2row-rw">${rwCell(id)}</div>
@@ -671,6 +720,7 @@ function renderScRows(){
         <div class="sc-rate-row"><div><span class="sub-badge plg-badge">PLG</span></div>${plgCells}</div>
         <div class="sc-rate-row"><div><span class="sub-badge slg-badge">SLG</span></div>${slgCells}</div>
       </div>
+      ${togglesHtml}
     </div>`;
   }
 
@@ -712,20 +762,24 @@ function sharedAdjHTML(){
 function setSc(id,key,val){const v=parseFloat(val);if(isNaN(v))return;S.sc[id][key]=v;refresh();}
 function stepSc(id,key,delta){S.sc[id][key]=Math.max(0,Math.round(((S.sc[id][key]||0)+delta)*100)/100);refresh();}
 
-// ── FUNDING LABEL ──────────────────────────────────────────────────────────
-function updateFundLbl(){
-  const el=document.getElementById('fund-impact');
-  if(!S.fundAmt||S.fundAmt<=0){el.style.display='none';return;}
-  const s3rw=trueRunway('S3'),noFund=simulate({...makeCfg('S3'),useFunding:false},60).runway;
-  el.style.display='block';
-  el.textContent=`${fDelta(s3rw-noFund)} additional runway (S3) · new end: ${moLbl(Math.round(s3rw)+1)}`;
+// ── TOGGLE FUNCTIONS ──────────────────────────────────────────────────────
+function toggleAdj(id){
+  S.adjScenarios[id]=!S.adjScenarios[id];
+  refresh();
+}
+function toggleFundScenario(id, checked){
+  S.fundScenarios[id]=checked;
+  refresh();
 }
 
 // ── CHARTS ─────────────────────────────────────────────────────────────────
 let chart=null,arrChart=null;
 
 function buildChartLabels(){
+  // index 0 = opening (start month), index 1..HORIZON = months 1..36
   return Array.from({length:HORIZON+1},(_,i)=>moLbl(i+1));
+  // Note: series[0] is the opening snapshot at start of month 1,
+  // series[m] is end-of-month m. Labels correctly align as month labels.
 }
 
 // Quarterly tick callback: only show label if index is multiple of 3
@@ -787,7 +841,6 @@ function updateCashExhaustionBox(){
 function initArrChart(){
   const ctx=document.getElementById('arr-chart').getContext('2d');
   arrChart=new Chart(ctx,{type:'line',data:{labels:buildChartLabels(),datasets:[
-    {label:'S0 Burn Only',data:[],borderColor:'#6b7280',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S1 Total',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
     {label:'S2 Total',data:[],borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.2},
     {label:'S3 Total',data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
@@ -802,18 +855,17 @@ function initArrChart(){
 function updateArrChart(){
   if(!arrChart)return;
   arrChart.data.labels=buildChartLabels();
-  const s0=runSc('S0',HORIZON),s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
-  arrChart.data.datasets[0].data=s0.plgArr.map((v,i)=>v+s0.slgArr[i]+(s0.dealArr?s0.dealArr[i]:0));
-  arrChart.data.datasets[1].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]+(s1.dealArr?s1.dealArr[i]:0));
-  arrChart.data.datasets[2].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]+(s2.dealArr?s2.dealArr[i]:0));
-  arrChart.data.datasets[3].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]+(s3.dealArr?s3.dealArr[i]:0));
+  const s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
+  arrChart.data.datasets[0].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]+(s1.dealArr?s1.dealArr[i]:0));
+  arrChart.data.datasets[1].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]+(s2.dealArr?s2.dealArr[i]:0));
+  arrChart.data.datasets[2].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]+(s3.dealArr?s3.dealArr[i]:0));
   arrChart.update('none');
 }
 
 // ── REFRESH ────────────────────────────────────────────────────────────────
 function refresh(){
   populateFundingDropdown();
-  updateKPIs();updateFundLbl();renderScRows();
+  updateKPIs();renderScRows();
   document.getElementById('exec-body').innerHTML=buildExec();
   updateChart();updateArrChart();
 }
