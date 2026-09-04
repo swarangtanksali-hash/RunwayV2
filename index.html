@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Runway Dashboard v3</title>
+<title>Runway Dashboard v4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -48,7 +48,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .kc-val{font-family:var(--mono);font-size:15px;font-weight:600;line-height:1.1}
 .kc-sub{font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:2px}
 
-/* MASTER LAYOUT: 60% LHS (everything) / 40% RHS (charts) */
 .master-layout{display:grid;grid-template-columns:60% 40%;gap:10px;align-items:start;min-height:0}
 .lhs{display:flex;flex-direction:column;gap:8px;min-width:0}
 .lhs-inputs-table{display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:start}
@@ -65,17 +64,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .fund-impact{font-size:10px;color:var(--gs);font-family:var(--mono);line-height:1.5;margin-top:5px;padding:6px 8px;background:rgba(34,197,94,.05);border:.5px solid rgba(34,197,94,.15);border-radius:4px;display:none}
 
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
-
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
 .stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
-
 .th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
-.th.blu{color:var(--bs)}
-.th.red{color:var(--rs)}
-
+.th.blu{color:var(--bs)}.th.red{color:var(--rs)}
 .grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px;gap:6px;padding:0 12px;align-items:center}
 
-/* 2-row scenario block: left info | runway | rates grid */
 .sc-2row{display:grid;grid-template-columns:130px 100px 1fr;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
@@ -152,13 +146,11 @@ canvas{display:block}
 
 <div class="ph">
   <span class="ph-ttl">RUNWAY DASHBOARD</span>
-  <span class="ph-sub">45-month horizon · Apr '26 → Dec '29</span>
+  <span class="ph-sub" id="ph-sub">36-month horizon</span>
   <span class="live">LIVE</span>
 </div>
 
 <div class="master-layout">
-
-<!-- LHS: Everything except charts -->
 <div class="lhs">
 
 <div class="exec">
@@ -176,9 +168,20 @@ canvas{display:block}
 </div>
 
 <div class="lhs-inputs-table">
-  <!-- LEFT PANEL -->
   <div class="lp">
     <div class="sec">Baseline Inputs</div>
+    <div class="ig">
+      <div class="ig-lbl">Dashboard Start Month</div>
+      <select class="fi" id="in-start-mo">
+        <option value="6" selected>Sep '26</option>
+        <option value="7">Oct '26</option>
+        <option value="8">Nov '26</option>
+        <option value="9">Dec '26</option>
+        <option value="10">Jan '27</option>
+        <option value="11">Feb '27</option>
+        <option value="12">Mar '27</option>
+      </select>
+    </div>
     <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="3100000"></div>
     <div class="ig">
       <div class="ig-lbl">Total ARR ($) <em id="total-mrr-hint"></em></div>
@@ -198,20 +201,11 @@ canvas{display:block}
     <div class="sec">Funding Event</div>
     <div class="ig"><div class="ig-lbl">Amount ($) <em>blank = none</em></div><input class="fi" type="number" id="in-fund-amt" placeholder="e.g. 2000000"></div>
     <div class="ig"><div class="ig-lbl">Closes in Month</div>
-      <select class="fi" id="in-fund-mo">
-        <option value="6" selected>Sep '26</option>
-        <option value="7">Oct '26</option>
-        <option value="8">Nov '26</option>
-        <option value="9">Dec '26</option>
-        <option value="10">Jan '27</option>
-        <option value="11">Feb '27</option>
-        <option value="12">Mar '27</option>
-      </select>
+      <select class="fi" id="in-fund-mo"></select>
     </div>
     <div class="fund-impact" id="fund-impact"></div>
   </div>
 
-  <!-- TABLE -->
   <div class="rcol">
   <div class="stbl">
     <div class="stbl-hd">
@@ -230,7 +224,6 @@ canvas{display:block}
       <span style="color:var(--cyans)">PLG</span> $99K · <span style="color:var(--pur)">SLG</span> $214K starting ARR
     </div>
 
-    <!-- SHARED ADJUSTMENTS -->
     <div style="padding:8px 12px;background:var(--bg2);border-top:.5px solid var(--border)">
       <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Adjustments — Applied to S2 &amp; S3</div>
       <div class="ev-col" id="shared-adj"></div>
@@ -253,7 +246,7 @@ canvas{display:block}
         <button class="btn-ok" onclick="saveEvent()">Add</button>
         <button class="btn-no" onclick="closeForm()">Cancel</button>
       </div>
-      <div style="font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:5px" id="ef-hint">Month 1=Apr '26 … 21=Dec '27 … 45=Dec '29.</div>
+      <div style="font-size:9px;color:var(--muted);font-family:var(--mono);margin-top:5px" id="ef-hint"></div>
     </div>
   </div>
   </div>
@@ -261,9 +254,7 @@ canvas{display:block}
 
 </div>
 
-<!-- RHS: Charts only -->
 <div class="charts-col">
-  <!-- CASH CHART -->
   <div class="chart-card">
     <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Cash Runway</div>
     <div class="c-leg">
@@ -276,7 +267,6 @@ canvas{display:block}
     <canvas id="chart" height="140"></canvas>
   </div>
 
-  <!-- ARR CHART -->
   <div class="chart-card">
     <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Total ARR by Scenario</div>
     <div class="c-leg">
@@ -293,8 +283,16 @@ canvas{display:block}
 
 <script>
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
-const HORIZON = 45;
-const PHASE2_START = 23; // Jan '28
+const HORIZON = 36; // fixed 36-month horizon from start month
+
+// PHASE2_START is relative to start month index (month 19 from Apr'26 = Jan'28)
+// We'll compute it dynamically based on startMonthOffset
+// Jan '28 = absolute month index 22 from Apr'26 (0-based: Apr'26=0)
+
+// Absolute month index from Apr '26 (Apr'26 = 0)
+// Sep'26 = 5, Oct'26 = 6 ... Mar'27 = 11
+// Jan'28 = 21 (absolute)
+const JAN28_ABS = 21; // 0-based from Apr'26
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 const S = {
@@ -304,28 +302,40 @@ const S = {
   slgArr:  214000,
   burn:    280000,
   fundAmt: 0,
-  fundMo:  6,
+  fundMo:  1,      // relative to start month (1 = start month itself)
+  startMonthOffset: 5, // 0-based from Apr'26: 5 = Sep'26
   events: [],
   arrEvents: [],
   sc: {
-    S0: { plgG:0, plgG2:0, plgC:0, plgC2:0, slgG:0, slgG2:0, slgC:0, slgC2:0, expGrowth:0,
-          useRevenue:false, useEvents:false, useFunding:false },
-    S1: { plgG:9, plgG2:9, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:10, slgC2:10, expGrowth:0,
-          useRevenue:true, useEvents:true, useFunding:false },
-    S2: { plgG:10, plgG2:10, plgC:13, plgC2:11, slgG:15, slgG2:15, slgC:5, slgC2:4, expGrowth:0,
-          useRevenue:true,  useEvents:true,  useFunding:false },
-    S3: { plgG:15, plgG2:10, plgC:11, plgC2:9, slgG:20, slgG2:15, slgC:4, slgC2:3, expGrowth:0,
-          useRevenue:true,  useEvents:true,  useFunding:true  },
+    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,   slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false, useFunding:false },
+    S1: { plgG:9,  plgG2:9,  plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:7.5, slgC2:10, expGrowth:0, useRevenue:true,  useEvents:true,  useFunding:false },
+    S2: { plgG:10, plgG2:10, plgC:13, plgC2:11, slgG:15, slgG2:15, slgC:5,   slgC2:4,  expGrowth:0, useRevenue:true,  useEvents:true,  useFunding:false },
+    S3: { plgG:15, plgG2:10, plgC:11, plgC2:9,  slgG:20, slgG2:15, slgC:4,   slgC2:3,  expGrowth:0, useRevenue:true,  useEvents:true,  useFunding:true  },
   }
 };
 let nextId = 1;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function moLbl(m){
-  const d=new Date(2026,3,1); d.setMonth(d.getMonth()+(m-1));
-  return MO[d.getMonth()]+" '"+(d.getFullYear()%100).toString().padStart(2,'0');
+
+// Convert absolute month index (0=Apr'26) to display label
+function absToLbl(absIdx){
+  const base=new Date(2026,3,1);
+  base.setMonth(base.getMonth()+absIdx);
+  return MO[base.getMonth()]+" '"+(base.getFullYear()%100).toString().padStart(2,'0');
 }
+
+// moLbl: relative month m (1-based from start) → label
+function moLbl(m){
+  return absToLbl(S.startMonthOffset + (m-1));
+}
+
+// Phase2 start relative to current start month
+function getPhase2Rel(){
+  const rel = JAN28_ABS - S.startMonthOffset + 1; // 1-based relative
+  return Math.max(rel, 1);
+}
+
 function f$(n){const a=Math.abs(n),s=n<0?'-':'';if(a>=1e6)return s+'$'+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+'$'+(a/1e3).toFixed(0)+'K';return s+'$'+Math.round(a).toLocaleString();}
 function fs$(n){const a=Math.abs(n),s=n<0?'-':'';if(a>=1e6)return s+'$'+(a/1e6).toFixed(1)+'M';if(a>=1e3)return s+'$'+(a/1e3).toFixed(0)+'K';return s+'$'+Math.round(a).toLocaleString();}
 function fRwRounded(rw){if(rw===null||isNaN(rw))return'—';const m=Math.floor(rw),d=Math.round((rw-m)*30.4375);if(d===0)return m+' mo';if(d<15)return'~'+m+' mo';return'~'+(m+1)+' mo';}
@@ -341,7 +351,7 @@ function simulate(cfg, horizon){
   const {startCash, startPlgMrr, startSlgMrr, startBurn,
          plgG, plgG2, plgC, plgC2, slgG, slgG2, slgC, slgC2,
          expGrowth, fundAmt, fundMo, events, arrEvents,
-         useRevenue, useEvents, useFunding} = cfg;
+         useRevenue, useEvents, useFunding, phase2Start} = cfg;
 
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
   let cash=startCash, plgMrr=startPlgMrr, slgMrr=startSlgMrr, runout=null;
@@ -351,10 +361,10 @@ function simulate(cfg, horizon){
     : [];
 
   for(let m=1;m<=horizon;m++){
-    const pg=(m>=PHASE2_START)?plgG2:plgG;
-    const pc=(m>=PHASE2_START)?plgC2:plgC;
-    const sg=(m>=PHASE2_START)?slgG2:slgG;
-    const sc=(m>=PHASE2_START)?slgC2:slgC;
+    const pg=(m>=phase2Start)?plgG2:plgG;
+    const pc=(m>=phase2Start)?plgC2:plgC;
+    const sg=(m>=phase2Start)?slgG2:slgG;
+    const sc=(m>=phase2Start)?slgC2:slgC;
 
     const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
 
@@ -397,7 +407,8 @@ function makeCfg(id){
          slgG:sc.slgG, slgG2:sc.slgG2, slgC:sc.slgC, slgC2:sc.slgC2,
          expGrowth:sc.expGrowth, fundAmt:S.fundAmt, fundMo:S.fundMo,
          events:S.events, arrEvents:S.arrEvents,
-         useRevenue:sc.useRevenue, useEvents:sc.useEvents, useFunding:sc.useFunding};
+         useRevenue:sc.useRevenue, useEvents:sc.useEvents, useFunding:sc.useFunding,
+         phase2Start:getPhase2Rel()};
 }
 function runSc(id,horizon){return simulate(makeCfg(id),horizon||HORIZON);}
 function trueRunway(id){
@@ -409,11 +420,12 @@ function trueRunway(id){
 // ── EXEC SUMMARY ──────────────────────────────────────────────────────────
 function breakevenCrossMonth(id){
   const sc=S.sc[id]; if(!sc.useRevenue)return null;
+  const p2=getPhase2Rel();
   let plgMrr=S.plgArr/12, slgMrr=S.slgArr/12;
   const deals=S.arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12}));
   for(let m=1;m<=HORIZON;m++){
-    const pg=(m>=PHASE2_START)?sc.plgG2:sc.plgG, pc=(m>=PHASE2_START)?sc.plgC2:sc.plgC;
-    const sg=(m>=PHASE2_START)?sc.slgG2:sc.slgG, scc=(m>=PHASE2_START)?sc.slgC2:sc.slgC;
+    const pg=(m>=p2)?sc.plgG2:sc.plgG, pc=(m>=p2)?sc.plgC2:sc.plgC;
+    const sg=(m>=p2)?sc.slgG2:sc.slgG, scc=(m>=p2)?sc.slgC2:sc.slgC;
     const burn=S.burn*Math.pow(1+(sc.expGrowth||0)/100,m-1);
     let dealMrr=0; for(const d of deals) if(m>=d.startMonth) dealMrr+=d.mrrContrib;
     if(plgMrr+slgMrr+dealMrr>=burn)return m;
@@ -426,11 +438,12 @@ function breakevenCrossMonth(id){
 
 function arrCrossMonth(id,target){
   const sc=S.sc[id]; if(!sc.useRevenue)return null;
+  const p2=getPhase2Rel();
   let plgMrr=S.plgArr/12, slgMrr=S.slgArr/12;
   const deals=S.arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12}));
   for(let m=1;m<=60;m++){
-    const pg=(m>=PHASE2_START)?sc.plgG2:sc.plgG, pc=(m>=PHASE2_START)?sc.plgC2:sc.plgC;
-    const sg=(m>=PHASE2_START)?sc.slgG2:sc.slgG, scc=(m>=PHASE2_START)?sc.slgC2:sc.slgC;
+    const pg=(m>=p2)?sc.plgG2:sc.plgG, pc=(m>=p2)?sc.plgC2:sc.plgC;
+    const sg=(m>=p2)?sc.slgG2:sc.slgG, scc=(m>=p2)?sc.slgC2:sc.slgC;
     let dealMrr=0; for(const d of deals) if(m>=d.startMonth) dealMrr+=d.mrrContrib;
     if((plgMrr+slgMrr+dealMrr)*12>=target)return m;
     plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
@@ -507,6 +520,39 @@ function updateKPIs(){
   document.getElementById('kpi-plgch-ann').textContent='ann. ≈'+fAnn(S.sc.S2.plgC);
   document.getElementById('kpi-slgch').textContent=fPct(S.sc.S2.slgC)+'/mo';
   document.getElementById('kpi-slgch-ann').textContent='ann. ≈'+fAnn(S.sc.S2.slgC);
+  // Update header subtitle
+  const endLbl=moLbl(HORIZON);
+  document.getElementById('ph-sub').textContent=`36-month horizon · ${moLbl(1)} → ${endLbl}`;
+}
+
+// ── DROPDOWN POPULATION ────────────────────────────────────────────────────
+function populateFundingDropdown(){
+  const sel=document.getElementById('in-fund-mo');
+  const current=S.fundMo;
+  sel.innerHTML='';
+  for(let m=1;m<=HORIZON;m++){
+    const opt=document.createElement('option');
+    opt.value=m;
+    opt.textContent=moLbl(m);
+    if(m===current) opt.selected=true;
+    sel.appendChild(opt);
+  }
+  // Reset fundMo to 1 if out of range
+  if(S.fundMo<1||S.fundMo>HORIZON){ S.fundMo=1; sel.value=1; }
+}
+
+function populateMonthDropdowns(){
+  const opts=Array.from({length:HORIZON},(_,i)=>{
+    const m=i+1;
+    return `<option value="${m}">${moLbl(m)}</option>`;
+  }).join('');
+  ['ef-mo','ef-mo-end'].forEach(id=>{
+    const el=document.getElementById(id);
+    const first=el.options[0].outerHTML;
+    el.innerHTML=first+opts;
+  });
+  // Update hint
+  document.getElementById('ef-hint').textContent=`Month 1=${moLbl(1)} … ${HORIZON}=${moLbl(HORIZON)}.`;
 }
 
 // ── EVENTS ────────────────────────────────────────────────────────────────
@@ -523,14 +569,6 @@ function arrEventImpactDays(ev){
 function delEv(id){S.events=S.events.filter(e=>e.id!==id);refresh();}
 function delArrEv(id){S.arrEvents=S.arrEvents.filter(e=>e.id!==id);refresh();}
 
-// Month dropdowns: start from Sep '26 = month 6
-function populateMonthDropdowns(){
-  const opts=Array.from({length:HORIZON-5},(_,i)=>{
-    const m=i+6; // months 6..45 = Sep '26..Dec '29
-    return `<option value="${m}">${moLbl(m)}</option>`;
-  }).join('');
-  ['ef-mo','ef-mo-end'].forEach(id=>{const el=document.getElementById(id);const f=el.options[0].outerHTML;el.innerHTML=f+opts;});
-}
 function toggleRecurring(){
   const type=document.getElementById('ef-type').value,isArr=type==='arr';
   const recurEl=document.getElementById('ef-recur'),toEl=document.getElementById('ef-mo-end');
@@ -571,16 +609,12 @@ function rwCell(id){
 
 function renderScRows(){
   let html='';
-
-  // ── S0 — single row, pure burn ──
   html+=`<div class="grid6 srow" style="opacity:0.65">
     <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue.</div></div>
     <div>${rwCell('S0')}</div>
-    <div></div>
-    <div></div><div></div>
+    <div></div><div></div><div></div>
   </div>`;
 
-  // Helper for 2-row scenario blocks
   function scBlock(id, opts){
     const sc=S.sc[id], meta=SC_META[id];
     const disabled=opts.disabled;
@@ -594,22 +628,12 @@ function renderScRows(){
     const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
     const borderTop=opts.borderTop?'border-top:.5px solid var(--border);':'';
     const planBg=meta.isPlan?'background:var(--plan-bg);border-left:2px solid var(--blu);':'';
-
     return `<div class="sc-2row" style="${planBg}${borderTop}${opacity}">
-      <div class="sc-2row-left">
-        <div class="sn-name">${nameHtml}</div>
-        <div class="sn-desc">${meta.desc}</div>
-      </div>
+      <div class="sc-2row-left"><div class="sn-name">${nameHtml}</div><div class="sn-desc">${meta.desc}</div></div>
       <div class="sc-2row-rw">${rwCell(id)}</div>
       <div class="sc-2row-rates">
-        <div class="sc-rate-row">
-          <div><span class="sub-badge plg-badge">PLG</span></div>
-          ${plgCells}
-        </div>
-        <div class="sc-rate-row">
-          <div><span class="sub-badge slg-badge">SLG</span></div>
-          ${slgCells}
-        </div>
+        <div class="sc-rate-row"><div><span class="sub-badge plg-badge">PLG</span></div>${plgCells}</div>
+        <div class="sc-rate-row"><div><span class="sub-badge slg-badge">SLG</span></div>${slgCells}</div>
       </div>
     </div>`;
   }
@@ -663,15 +687,38 @@ function updateFundLbl(){
 
 // ── CHARTS ─────────────────────────────────────────────────────────────────
 let chart=null,arrChart=null;
+
+function buildChartLabels(){
+  return Array.from({length:HORIZON+1},(_,i)=>moLbl(i+1));
+}
+
+// Quarterly tick callback: only show label if index is multiple of 3
+function quarterlyTicks(val, index){
+  if(index % 3 === 0) return this.getLabelForValue(val);
+  return '';
+}
+
 function splitAtCashout(arr){
   const solid=[],dashed=[];let ex=false;
   for(let i=0;i<arr.length;i++){if(!ex){solid.push(arr[i]);dashed.push(null);if(arr[i]===0&&i>0)ex=true;}else{solid.push(null);dashed.push(arr[i]);}}
   return{solid,dashed};
 }
+
+const chartTickOpts = {
+  color:'#6b7280',
+  font:{family:"'IBM Plex Mono',monospace",size:8},
+  maxRotation:45,
+  autoSkip:false,
+  callback: function(val, index){ return index % 3 === 0 ? this.getLabelForValue(val) : ''; }
+};
+const chartGridOpts = {
+  color: function(ctx){ return ctx.index % 3 === 0 ? 'rgba(255,255,255,0.06)' : 'transparent'; },
+  drawTicks:false
+};
+
 function initChart(){
   const ctx=document.getElementById('chart').getContext('2d');
-  const labels=Array.from({length:HORIZON+1},(_,i)=>i===0?"Apr '26":moLbl(i+1));
-  chart=new Chart(ctx,{type:'line',data:{labels,datasets:[
+  chart=new Chart(ctx,{type:'line',data:{labels:buildChartLabels(),datasets:[
     {label:'S0',data:[],borderColor:'#6b7280',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S1',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
     {label:'S2',data:[],borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.2},
@@ -680,30 +727,45 @@ function initChart(){
     {label:'S1h',data:[],borderColor:'rgba(239,68,68,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S2h',data:[],borderColor:'rgba(59,130,246,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S3h',data:[],borderColor:'rgba(34,197,94,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
-  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2535',borderColor:'rgba(255,255,255,0.07)',borderWidth:.5,titleColor:'#9ca3af',bodyColor:'#e8eaf0',titleFont:{family:"'IBM Plex Mono',monospace",size:9},bodyFont:{family:"'IBM Plex Mono',monospace",size:10},filter:item=>!item.dataset.label.endsWith('h'),callbacks:{label:c=>` ${c.dataset.label}: ${fs$(c.parsed.y)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},maxRotation:45,autoSkip:true,maxTicksLimit:8},border:{color:'rgba(255,255,255,0.07)'}},y:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},callback:v=>fs$(v)},border:{color:'rgba(255,255,255,0.07)'}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2535',borderColor:'rgba(255,255,255,0.07)',borderWidth:.5,titleColor:'#9ca3af',bodyColor:'#e8eaf0',titleFont:{family:"'IBM Plex Mono',monospace",size:9},bodyFont:{family:"'IBM Plex Mono',monospace",size:10},filter:item=>!item.dataset.label.endsWith('h'),callbacks:{label:c=>` ${c.dataset.label}: ${fs$(c.parsed.y)}`}}},
+    scales:{
+      x:{grid:chartGridOpts,ticks:chartTickOpts,border:{color:'rgba(255,255,255,0.07)'}},
+      y:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},callback:v=>fs$(v)},border:{color:'rgba(255,255,255,0.07)'}}
+    }}});
 }
+
 function updateChart(){
   if(!chart)return;
+  chart.data.labels=buildChartLabels();
   ['S0','S1','S2','S3'].forEach((id,i)=>{const raw=runSc(id,HORIZON).arr,{solid,dashed}=splitAtCashout(raw);chart.data.datasets[i].data=solid;chart.data.datasets[i+4].data=dashed;});
   chart.update('none');updateCashExhaustionBox();
 }
+
 function cashoutMonth(id){const arr=runSc(id,HORIZON).arr;for(let i=1;i<arr.length;i++)if(arr[i]===0)return i;return null;}
 function updateCashExhaustionBox(){
   const box=document.getElementById('cash-exhaustion-box'),colors={S0:'var(--muted)',S1:'var(--rs)',S2:'var(--bs)',S3:'var(--gs)'};
   box.innerHTML='Cash out: '+['S0','S1','S2','S3'].map(id=>{const m=cashoutMonth(id);return`<span style="color:${colors[id]}">${id} ${m?moLbl(m):'survives'}</span>`;}).join(' · ');
 }
+
 function initArrChart(){
   const ctx=document.getElementById('arr-chart').getContext('2d');
-  const labels=Array.from({length:HORIZON+1},(_,i)=>i===0?"Apr '26":moLbl(i+1));
-  arrChart=new Chart(ctx,{type:'line',data:{labels,datasets:[
+  arrChart=new Chart(ctx,{type:'line',data:{labels:buildChartLabels(),datasets:[
     {label:'S0 Burn Only',data:[],borderColor:'#6b7280',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S1 Total',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
     {label:'S2 Total',data:[],borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.2},
     {label:'S3 Total',data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
-  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2535',borderColor:'rgba(255,255,255,0.07)',borderWidth:.5,titleColor:'#9ca3af',bodyColor:'#e8eaf0',titleFont:{family:"'IBM Plex Mono',monospace",size:9},bodyFont:{family:"'IBM Plex Mono',monospace",size:10},callbacks:{label:c=>` ${c.dataset.label}: ${fs$(c.parsed.y)}`}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},maxRotation:45,autoSkip:true,maxTicksLimit:8},border:{color:'rgba(255,255,255,0.07)'}},y:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},callback:v=>fs$(v)},border:{color:'rgba(255,255,255,0.07)'}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2535',borderColor:'rgba(255,255,255,0.07)',borderWidth:.5,titleColor:'#9ca3af',bodyColor:'#e8eaf0',titleFont:{family:"'IBM Plex Mono',monospace",size:9},bodyFont:{family:"'IBM Plex Mono',monospace",size:10},callbacks:{label:c=>` ${c.dataset.label}: ${fs$(c.parsed.y)}`}}},
+    scales:{
+      x:{grid:chartGridOpts,ticks:chartTickOpts,border:{color:'rgba(255,255,255,0.07)'}},
+      y:{grid:{color:'rgba(255,255,255,0.04)',drawTicks:false},ticks:{color:'#6b7280',font:{family:"'IBM Plex Mono',monospace",size:8},callback:v=>fs$(v)},border:{color:'rgba(255,255,255,0.07)'}}
+    }}});
 }
+
 function updateArrChart(){
   if(!arrChart)return;
+  arrChart.data.labels=buildChartLabels();
   const s0=runSc('S0',HORIZON),s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
   arrChart.data.datasets[0].data=s0.plgArr.map((v,i)=>v+s0.slgArr[i]+(s0.dealArr?s0.dealArr[i]:0));
   arrChart.data.datasets[1].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]+(s1.dealArr?s1.dealArr[i]:0));
@@ -714,6 +776,7 @@ function updateArrChart(){
 
 // ── REFRESH ────────────────────────────────────────────────────────────────
 function refresh(){
+  populateFundingDropdown();
   updateKPIs();updateFundLbl();renderScRows();
   document.getElementById('exec-body').innerHTML=buildExec();
   updateChart();updateArrChart();
@@ -721,6 +784,18 @@ function refresh(){
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 function init(){
+  document.getElementById('in-start-mo').addEventListener('change',function(){
+    const v=parseInt(this.value);
+    if(!isNaN(v)){
+      // v is the absolute offset from Apr'26 (0-based): Sep'26=5, Oct'26=6...
+      S.startMonthOffset=v-1; // dropdown value is 1-based month index from Apr'26
+      // Reset events that are now out of range
+      S.events=S.events.filter(e=>e.month<=HORIZON);
+      S.arrEvents=S.arrEvents.filter(e=>e.month<=HORIZON);
+      S.fundMo=1;
+      refresh();
+    }
+  });
   document.getElementById('in-cash').addEventListener('input',function(){const v=parseFloat(this.value);if(!isNaN(v)){S.cash=v;refresh();}});
   document.getElementById('in-burn').addEventListener('input',function(){const v=parseFloat(this.value);if(!isNaN(v)){S.burn=v;refresh();}});
   document.getElementById('in-total-arr').addEventListener('input',function(){
