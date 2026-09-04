@@ -195,7 +195,7 @@ canvas{display:block}
       <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> ARR ($) <em id="slg-mrr-hint"></em></div>
       <input class="fi" type="number" id="in-slg-arr" value="214000" disabled style="opacity:.55">
     </div>
-    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="280000"></div>
+    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="290000"></div>
 
     <div class="hr"></div>
     <div class="sec">Funding Event</div>
@@ -300,7 +300,7 @@ const S = {
   totalArr:313000,
   plgArr:  99000,
   slgArr:  214000,
-  burn:    280000,
+  burn:    290000,
   fundAmt: 0,
   fundMo:  1,      // relative to start month (1 = start month itself)
   startMonthOffset: 5, // 0-based from Apr'26: 5 = Sep'26
@@ -453,16 +453,48 @@ function arrCrossMonth(id,target){
   return null;
 }
 
+// ── PEAK DEFICIT ──────────────────────────────────────────────────────────
+function peakDeficit(id){
+  // Runs simulation without clamping cash at 0, finds minimum cash and the month it occurs
+  const cfg=makeCfg(id);
+  const {startCash,startPlgMrr,startSlgMrr,startBurn,
+         plgG,plgG2,plgC,plgC2,slgG,slgG2,slgC,slgC2,
+         expGrowth,fundAmt,fundMo,events,arrEvents,
+         useRevenue,useEvents,useFunding,phase2Start}=cfg;
+  let cash=startCash,plgMrr=startPlgMrr,slgMrr=startSlgMrr;
+  let minCash=startCash,minMonth=0;
+  const deals=(useRevenue&&arrEvents&&arrEvents.length)
+    ?arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12})):[];
+  for(let m=1;m<=HORIZON;m++){
+    const pg=(m>=phase2Start)?plgG2:plgG,pc=(m>=phase2Start)?plgC2:plgC;
+    const sg=(m>=phase2Start)?slgG2:slgG,sc=(m>=phase2Start)?slgC2:slgC;
+    const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
+    let evD=0;
+    if(useEvents&&events)for(const e of events){const end=e.monthEnd||e.month;if(m>=e.month&&m<=end)evD+=(e.type==='income'||e.type==='savings'?1:-1)*e.amount;}
+    const fd=(useFunding&&fundAmt>0&&m===fundMo)?fundAmt:0;
+    let dealMrr=0;if(useRevenue)for(const d of deals)if(m>=d.startMonth)dealMrr+=d.mrrContrib;
+    const rev=useRevenue?(plgMrr+slgMrr+dealMrr):0;
+    cash=cash-burn+rev+evD+fd; // no clamp
+    if(cash<minCash){minCash=cash;minMonth=m;}
+    if(useRevenue){
+      plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
+      slgMrr=Math.max(slgMrr+slgMrr*(sg/100)-slgMrr*(sc/100),0);
+      for(const d of deals)if(m===d.renewalMonth){d.mrrContrib*=(1-sc/100);d.renewalMonth+=12;}
+    }
+  }
+  return{amount:minCash,month:minMonth};
+}
+
 function buildExec(){
   const s1rw=trueRunway('S1'),s2rw=trueRunway('S2'),s3rw=trueRunway('S3');
   const sc2=S.sc.S2,sc3=S.sc.S3;
   const totalArr=S.plgArr+S.slgArr;
-  const s2End=moLbl(Math.round(s2rw)+1);
+  const s2End=moLbl(Math.round(s2rw));
   const lines=[];
 
   const beS2=breakevenCrossMonth('S2'),beS3=breakevenCrossMonth('S3');
   const beTxt=beS2?` ARR breakeven: S2 <span class="nb">${moLbl(beS2)}</span>${beS3?`, S3 <span class="ng">${moLbl(beS3)}</span>`:''}.`:'';
-  lines.push(`• Runway — Conservative (S1): <span class="nr">${fRwRounded(s1rw)}</span> ending <span class="nr">${moLbl(Math.round(s1rw)+1)}</span> &nbsp;·&nbsp; Realistic (S2): <span class="nb">${fRwRounded(s2rw)}</span> ending <span class="nb">${s2End}</span> — at <span class="ng">${f$(totalArr)}</span> ARR (<span style="color:var(--cyans);font-family:var(--mono)">PLG ${fs$(S.plgArr)}</span> + <span style="color:var(--pur);font-family:var(--mono)">SLG ${fs$(S.slgArr)}</span>) vs <span class="nr">${f$(S.burn)}/mo</span> burn.${beTxt}`);
+  lines.push(`• Runway — Conservative (S1): <span class="nr">${fRwRounded(s1rw)}</span> ending <span class="nr">${moLbl(Math.round(s1rw))}</span> &nbsp;·&nbsp; Realistic (S2): <span class="nb">${fRwRounded(s2rw)}</span> ending <span class="nb">${s2End}</span> — at <span class="ng">${f$(totalArr)}</span> ARR (<span style="color:var(--cyans);font-family:var(--mono)">PLG ${fs$(S.plgArr)}</span> + <span style="color:var(--pur);font-family:var(--mono)">SLG ${fs$(S.slgArr)}</span>) vs <span class="nr">${f$(S.burn)}/mo</span> burn.${beTxt}`);
 
   const s3rw_noFund=simulate({...makeCfg('S3'),useFunding:false},60).runway;
   const totalRwDelta=s3rw_noFund-s2rw;
@@ -496,9 +528,13 @@ function buildExec(){
   }
 
   if(S.fundAmt>0){
-    const s3rw=trueRunway('S3'),delta=s3rw-s3rw_noFund,neEnd=moLbl(Math.round(s3rw)+1);
+    const s3rw=trueRunway('S3'),delta=s3rw-s3rw_noFund,neEnd=moLbl(Math.round(s3rw));
     lines.push(`• Funding <span class="ng">${f$(S.fundAmt)}</span> in ${moLbl(S.fundMo)} extends S3 by <span class="ng">${fDelta(delta)}</span> — new end <span class="nb">${neEnd}</span>.`);
   }
+
+  const pd1=peakDeficit('S1'),pd2=peakDeficit('S2');
+  const pdFmt=(pd)=>pd.amount<0?`<span class="nr">${fs$(pd.amount)}</span> (${moLbl(pd.month)})`:`<span class="ng">none</span>`;
+  lines.push(`• Peak deficit — S1: ${pdFmt(pd1)} &nbsp;·&nbsp; S2: ${pdFmt(pd2)}`);
 
   return lines.map(l=>`<p style="margin-bottom:5px">${l}</p>`).join('');
 }
@@ -508,7 +544,7 @@ function updateKPIs(){
   const s2rw=trueRunway('S2'),totalArr=S.plgArr+S.slgArr,totalMrr=totalArr/12,nb=S.burn-totalMrr;
   document.getElementById('kpi-cash').textContent=f$(S.cash);
   document.getElementById('kpi-rw').textContent=fRwRounded(s2rw);
-  document.getElementById('kpi-rw-sub').textContent='ends '+moLbl(Math.round(s2rw)+1);
+  document.getElementById('kpi-rw-sub').textContent='ends '+moLbl(Math.round(s2rw));
   const nbEl=document.getElementById('kpi-nb');
   nbEl.textContent=f$(nb); nbEl.className='kc-val '+(nb>0?'col-r':'col-g');
   document.getElementById('kpi-arr').textContent=f$(totalArr);
@@ -604,7 +640,7 @@ function inpE(id,key,step){
 
 function rwCell(id){
   const rw=trueRunway(id),m=SC_META[id];
-  return `<div class="rw-mo ${m.rc}">${fRwRounded(rw)}</div>${fRwExact(rw)?`<div class="rw-days">${fRwExact(rw)}</div>`:''}<div class="rw-pill ${m.pill}">${moLbl(Math.round(rw)+1)}</div>`;
+  return `<div class="rw-mo ${m.rc}">${fRwRounded(rw)}</div>${fRwExact(rw)?`<div class="rw-days">${fRwExact(rw)}</div>`:''}<div class="rw-pill ${m.pill}">${moLbl(Math.round(rw))}</div>`;
 }
 
 function renderScRows(){
