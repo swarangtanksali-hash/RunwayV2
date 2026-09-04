@@ -179,31 +179,33 @@ canvas{display:block}
   <!-- LEFT PANEL -->
   <div class="lp">
     <div class="sec">Baseline Inputs</div>
-    <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="4500000"></div>
+    <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="3100000"></div>
     <div class="ig">
       <div class="ig-lbl">Total ARR ($) <em id="total-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-total-arr" value="177000">
+      <input class="fi" type="number" id="in-total-arr" value="313000">
     </div>
     <div class="ig">
       <div class="ig-lbl"><span style="color:var(--cyans)">PLG</span> ARR ($) <em id="plg-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-plg-arr" value="67000">
+      <input class="fi" type="number" id="in-plg-arr" value="99000">
     </div>
     <div class="ig">
       <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> ARR ($) <em id="slg-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-slg-arr" value="110000" disabled style="opacity:.55">
+      <input class="fi" type="number" id="in-slg-arr" value="214000" disabled style="opacity:.55">
     </div>
-    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="355000"></div>
+    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="280000"></div>
 
     <div class="hr"></div>
     <div class="sec">Funding Event</div>
     <div class="ig"><div class="ig-lbl">Amount ($) <em>blank = none</em></div><input class="fi" type="number" id="in-fund-amt" placeholder="e.g. 2000000"></div>
     <div class="ig"><div class="ig-lbl">Closes in Month</div>
       <select class="fi" id="in-fund-mo">
-        <option value="3">Jun '26</option><option value="4">Jul '26</option>
-        <option value="5" selected>Aug '26</option><option value="6">Sep '26</option>
-        <option value="7">Oct '26</option><option value="8">Nov '26</option>
-        <option value="9">Dec '26</option><option value="10">Jan '27</option>
-        <option value="11">Feb '27</option><option value="12">Mar '27</option>
+        <option value="6" selected>Sep '26</option>
+        <option value="7">Oct '26</option>
+        <option value="8">Nov '26</option>
+        <option value="9">Dec '26</option>
+        <option value="10">Jan '27</option>
+        <option value="11">Feb '27</option>
+        <option value="12">Mar '27</option>
       </select>
     </div>
     <div class="fund-impact" id="fund-impact"></div>
@@ -223,9 +225,9 @@ canvas{display:block}
     <div id="srows"></div>
 
     <div style="padding:5px 12px;background:var(--bg3);border-top:.5px solid var(--border);font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5">
-      <span style="color:var(--bs)">NEW ARR</span> = Net new + Expansion on the opening ARR base each month &nbsp;·&nbsp;
+      <span style="color:var(--bs)">NEW ARR</span> = New + Expansion on the opening ARR base each month &nbsp;·&nbsp;
       <span style="color:var(--rs)">$ Churn</span> = ARR $ lost as % of opening ARR (not logo churn) &nbsp;·&nbsp;
-      <span style="color:var(--cyans)">PLG</span> $67K · <span style="color:var(--pur)">SLG</span> $110K starting ARR
+      <span style="color:var(--cyans)">PLG</span> $99K · <span style="color:var(--pur)">SLG</span> $214K starting ARR
     </div>
 
     <!-- SHARED ADJUSTMENTS -->
@@ -296,22 +298,19 @@ const PHASE2_START = 23; // Jan '28
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 const S = {
-  cash:    4500000,
-  totalArr:177000,
-  plgArr:  67000,
-  slgArr:  110000,
-  burn:    355000,
+  cash:    3100000,
+  totalArr:313000,
+  plgArr:  99000,
+  slgArr:  214000,
+  burn:    280000,
   fundAmt: 0,
-  fundMo:  5,
-  events: [
-    {id:1,label:'Marketing Burst',type:'expense',amount:37500,month:5,monthEnd:6},
-    {id:2,label:'Cost Cut',type:'income',amount:85000,month:3,monthEnd:45,recurring:true},
-  ],
+  fundMo:  6,
+  events: [],
   arrEvents: [],
   sc: {
     S0: { plgG:0, plgG2:0, plgC:0, plgC2:0, slgG:0, slgG2:0, slgC:0, slgC2:0, expGrowth:0,
           useRevenue:false, useEvents:false, useFunding:false },
-    S1: { plgG:7, plgG2:7, plgC:15, plgC2:15, slgG:11, slgG2:11, slgC:5, slgC2:5, expGrowth:0,
+    S1: { plgG:9, plgG2:9, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:10, slgC2:10, expGrowth:0,
           useRevenue:true, useEvents:true, useFunding:false },
     S2: { plgG:10, plgG2:10, plgC:13, plgC2:11, slgG:15, slgG2:15, slgC:5, slgC2:4, expGrowth:0,
           useRevenue:true,  useEvents:true,  useFunding:false },
@@ -319,7 +318,7 @@ const S = {
           useRevenue:true,  useEvents:true,  useFunding:true  },
   }
 };
-let nextId = 3;
+let nextId = 1;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -524,8 +523,12 @@ function arrEventImpactDays(ev){
 function delEv(id){S.events=S.events.filter(e=>e.id!==id);refresh();}
 function delArrEv(id){S.arrEvents=S.arrEvents.filter(e=>e.id!==id);refresh();}
 
+// Month dropdowns: start from Sep '26 = month 6
 function populateMonthDropdowns(){
-  const opts=Array.from({length:HORIZON},(_,i)=>`<option value="${i+1}">${moLbl(i+1)}</option>`).join('');
+  const opts=Array.from({length:HORIZON-5},(_,i)=>{
+    const m=i+6; // months 6..45 = Sep '26..Dec '29
+    return `<option value="${m}">${moLbl(m)}</option>`;
+  }).join('');
   ['ef-mo','ef-mo-end'].forEach(id=>{const el=document.getElementById(id);const f=el.options[0].outerHTML;el.innerHTML=f+opts;});
 }
 function toggleRecurring(){
