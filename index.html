@@ -65,26 +65,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px 88px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
+.stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
 .th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
 .th.blu{color:var(--bs)}.th.red{color:var(--rs)}
-.grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px 88px;gap:6px;padding:0 12px;align-items:center}
+.grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;gap:6px;padding:0 12px;align-items:center}
 
-.sc-2row{display:grid;grid-template-columns:130px 100px 1fr 88px;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
+.sc-2row{display:grid;grid-template-columns:130px 100px 1fr 52px 52px;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
 .sc-rate-row{display:grid;grid-template-columns:50px 78px 78px;gap:6px;align-items:center}
-.sc-2row-toggles{align-self:center;display:flex;flex-direction:column;gap:6px;padding-left:4px}
-.tog-row{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px}
-.tog-btn{width:36px;height:18px;border-radius:9px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
-.tog-btn::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s}
-.tog-btn.on{background:var(--blu)}
-.tog-btn.on::after{left:20px}
-.tog-btn.off{background:var(--bg4)}
-.tog-btn-fund.on{background:var(--grn)}
-.tog-btn-fund.off{background:var(--bg4)}
-.tog-btn:disabled{opacity:0.3;cursor:not-allowed}
+.sc-2row-chk{align-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+.sc-chk{width:14px;height:14px;cursor:pointer;border-radius:3px}
+.sc-chk:disabled{opacity:0.25;cursor:not-allowed}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .srow-parent{padding-top:8px;padding-bottom:5px}
@@ -213,20 +206,6 @@ canvas{display:block}
     <div class="ig"><div class="ig-lbl">Closes in Month</div>
       <select class="fi" id="in-fund-mo"></select>
     </div>
-    <div class="ig">
-      <div class="ig-lbl">Apply to Scenarios</div>
-      <div style="display:flex;gap:10px;margin-top:2px">
-        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--rs);cursor:pointer">
-          <input type="checkbox" id="fund-s1" onchange="toggleFundScenario('S1',this.checked)" style="accent-color:var(--red);width:12px;height:12px"> S1
-        </label>
-        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--bs);cursor:pointer">
-          <input type="checkbox" id="fund-s2" onchange="toggleFundScenario('S2',this.checked)" style="accent-color:var(--blu);width:12px;height:12px"> S2
-        </label>
-        <label style="display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;color:var(--gs);cursor:pointer">
-          <input type="checkbox" id="fund-s3" checked onchange="toggleFundScenario('S3',this.checked)" style="accent-color:var(--grn);width:12px;height:12px"> S3
-        </label>
-      </div>
-    </div>
   </div>
 
   <div class="rcol">
@@ -235,16 +214,18 @@ canvas{display:block}
       <div class="th">Scenario</div>
       <div class="th">Runway</div>
       <div class="th">Motion</div>
-      <div class="th blu">ARR % /mo</div>
+      <div class="th blu">New ARR % /mo</div>
       <div class="th red">Churn % /mo</div>
-      <div class="th" style="color:var(--as)">Adj · Fund</div>
+      <div class="th" style="color:var(--bs);letter-spacing:.05em">Adj</div>
+      <div class="th" style="color:var(--gs);letter-spacing:.05em">Fund</div>
     </div>
 
     <div id="srows"></div>
 
     <div style="padding:5px 12px;background:var(--bg3);border-top:.5px solid var(--border);font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5">
-      <span style="color:var(--bs)">NEW ARR</span> = New + Expansion on the opening ARR base each month &nbsp;·&nbsp;
-      <span style="color:var(--rs)">$ Churn</span> = ARR $ lost as % of opening ARR (not logo churn) &nbsp;·&nbsp;
+      <span style="color:var(--bs)">New ARR %</span> = Gross new ARR added as % of opening base each month &nbsp;·&nbsp;
+      <span style="color:var(--rs)">Churn %</span> = Gross ARR lost as % of opening base &nbsp;·&nbsp;
+      Net = New − Churn &nbsp;·&nbsp;
       <span style="color:var(--cyans)">PLG</span> $99K · <span style="color:var(--pur)">SLG</span> $214K starting ARR
     </div>
 
@@ -333,9 +314,9 @@ const S = {
   arrEvents: [],
   sc: {
     S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,   slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false },
-    S1: { plgG:9,  plgG2:9,  plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:7.5, slgC2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
-    S2: { plgG:10, plgG2:10, plgC:13, plgC2:11, slgG:15, slgG2:15, slgC:5,   slgC2:4,  expGrowth:0, useRevenue:true,  useEvents:true  },
-    S3: { plgG:15, plgG2:10, plgC:11, plgC2:9,  slgG:20, slgG2:15, slgC:4,   slgC2:3,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:7.5, slgC2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S2: { plgG:30, plgG2:30, plgC:16, plgC2:16, slgG:15, slgG2:15, slgC:5,   slgC2:4,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S3: { plgG:30, plgG2:30, plgC:16, plgC2:16, slgG:20, slgG2:15, slgC:4,   slgC2:3,  expGrowth:0, useRevenue:true,  useEvents:true  },
   }
 };
 let nextId = 1;
@@ -679,10 +660,8 @@ function renderScRows(){
     <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue.</div></div>
     <div>${rwCell('S0')}</div>
     <div></div><div></div><div></div>
-    <div style="display:flex;flex-direction:column;gap:6px;opacity:0.3;padding-left:4px">
-      <div class="tog-row"><button class="tog-btn off" disabled></button><span style="color:var(--muted)">Adj</span></div>
-      <div class="tog-row"><button class="tog-btn tog-btn-fund off" disabled></button><span style="color:var(--muted)">Fund</span></div>
-    </div>
+    <div class="sc-2row-chk"><input type="checkbox" class="sc-chk" disabled></div>
+    <div class="sc-2row-chk"><input type="checkbox" class="sc-chk" disabled></div>
   </div>`;
 
   function scBlock(id, opts){
@@ -700,19 +679,6 @@ function renderScRows(){
     const planBg=meta.isPlan?'background:var(--plan-bg);border-left:2px solid var(--blu);':'';
     const adjOn=S.adjScenarios[id]||false;
     const fundOn=S.fundScenarios[id]||false;
-    const hasFund=S.fundAmt>0;
-    const adjColor=adjOn?'var(--bs)':'var(--muted)';
-    const fundColor=fundOn?'var(--gs)':'var(--muted)';
-    const togglesHtml=`<div class="sc-2row-toggles">
-      <div class="tog-row">
-        <button class="tog-btn ${adjOn?'on':'off'}" onclick="toggleAdj('${id}')" title="Toggle adjustments"></button>
-        <span style="color:${adjColor};font-size:9px">Adj</span>
-      </div>
-      <div class="tog-row">
-        <button class="tog-btn tog-btn-fund ${fundOn?'on':'off'}" onclick="toggleFundScenario('${id}',${!fundOn})" ${hasFund?'':'style="opacity:0.4"'} title="Toggle funding"></button>
-        <span style="color:${fundColor};font-size:9px">Fund</span>
-      </div>
-    </div>`;
     return `<div class="sc-2row" style="${planBg}${borderTop}${opacity}">
       <div class="sc-2row-left"><div class="sn-name">${nameHtml}</div><div class="sn-desc">${meta.desc}</div></div>
       <div class="sc-2row-rw">${rwCell(id)}</div>
@@ -720,7 +686,12 @@ function renderScRows(){
         <div class="sc-rate-row"><div><span class="sub-badge plg-badge">PLG</span></div>${plgCells}</div>
         <div class="sc-rate-row"><div><span class="sub-badge slg-badge">SLG</span></div>${slgCells}</div>
       </div>
-      ${togglesHtml}
+      <div class="sc-2row-chk">
+        <input type="checkbox" class="sc-chk" ${adjOn?'checked':''} style="accent-color:var(--blu)" onchange="toggleAdj('${id}')">
+      </div>
+      <div class="sc-2row-chk">
+        <input type="checkbox" class="sc-chk" ${fundOn?'checked':''} style="accent-color:var(--grn)" onchange="toggleFundScenario('${id}',this.checked)">
+      </div>
     </div>`;
   }
 
