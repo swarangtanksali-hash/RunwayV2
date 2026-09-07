@@ -203,6 +203,14 @@ canvas{display:block}
     </div>
     <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="290000"></div>
 
+    <div class="ig">
+      <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> Billing <em id="slg-bill-hint">cash timing</em></div>
+      <div style="display:flex;gap:0;margin-top:2px;border:.5px solid var(--border);border-radius:4px;overflow:hidden">
+        <button id="bill-upfront" onclick="setBilling('upfront')" style="flex:1;padding:5px 4px;background:var(--blu);color:#fff;border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Upfront annual</button>
+        <button id="bill-smooth" onclick="setBilling('smooth')" style="flex:1;padding:5px 4px;background:var(--bg3);color:var(--muted);border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Smooth monthly</button>
+      </div>
+    </div>
+
     <div class="hr"></div>
     <div class="sec">Funding Event</div>
     <div class="ig"><div class="ig-lbl">Amount ($) <em>blank = none</em></div><input class="fi" type="number" id="in-fund-amt" value="5000000" placeholder="e.g. 2000000"></div>
@@ -268,7 +276,7 @@ canvas{display:block}
 
 <div class="charts-col">
   <div class="chart-card">
-    <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Cash Runway</div>
+    <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Cash Runway <span id="cash-mode-tag" style="color:var(--bs);font-size:8px;letter-spacing:.04em"></span></div>
     <div class="c-leg">
       <div class="c-li"><div class="c-line" style="border-top:2px dashed #ef4444;background:none;height:0;width:18px;border-radius:0"></div>S0</div>
       <div class="c-li"><div class="c-line" style="background:#f97316"></div>S1</div>
@@ -301,7 +309,7 @@ canvas{display:block}
     <p style="margin-bottom:4px;padding-left:14px">• <strong>New bookings — monthly.</strong> Each month new SLG ARR is booked equal to <em>New %/mo × current SLG ARR</em>. That annual contract value is collected as cash <strong>one month later</strong> (30-day billing lag), upfront for the full year.</p>
     <p style="margin-bottom:4px;padding-left:14px">• <strong>Churn &amp; Expansion — annual, at renewal.</strong> Each booked cohort renews every 12 months at <em>value × NDR</em>, where <strong>NDR = 100% − SLG churn %/yr + SLG expansion %/yr</strong> (e.g. −5% churn +10% expansion → 105% net revenue retention). The renewed annual value is re-collected upfront in the renewal month.</p>
     <p style="margin-bottom:8px;padding-left:14px">• <strong>Opening SLG base ($214K)</strong> is treated as a flat monthly run-rate (base ÷ 12 collected each month) for simplicity — it is not cohort-tracked. Once per year the NDR step is applied to the base so it gently rises or falls annually rather than dropping off a cliff.</p>
-    <p style="margin-bottom:8px">Because SLG cash is collected upfront on bookings and renewals, the <strong>Cash Runway</strong> line is lumpier than a smoothed run-rate model and generally shows more cash during growth phases — this reflects real annual-contract billing. The <strong>ARR chart</strong> remains a smoother measure of contracted run-rate. The two are intentionally decoupled.</p>
+    <p style="margin-bottom:8px">Because SLG cash is collected upfront on bookings and renewals, the <strong>Cash Runway</strong> line is lumpier than a smoothed run-rate model and generally shows more cash during growth phases — this reflects real annual-contract billing. The <strong>ARR chart</strong> remains a smoother measure of contracted run-rate. The two are intentionally decoupled. The <strong>SLG Billing toggle</strong> (left panel) switches SLG cash collection between <em>Upfront annual</em> (bookings and renewals collected as a full year of cash, 1-month lag) and <em>Smooth monthly</em> (the same ARR collected evenly, ⅟₁₂ per month). Upfront is the realistic basis; Smooth is a conservative comparison. The ARR chart is identical under both — only cash timing and runway change.</p>
     <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong>: <em>Expense</em> and <em>Savings</em> affect cash only. <em>One-time ARR</em> (e.g. a named deal) is added to the SLG base and follows the annual NDR thereafter. <em>Recurring income</em> (e.g. AI Revenues) is decoupled from PLG/SLG — it adds monthly cash (optionally growing at a monthly rate) and shows on the ARR chart as the current monthly amount × 12; it persists at its last value after its window ends.</p>
     <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cumulative cash reaches zero. Milestone columns (Dec '26 / Mar '27) and the ARR chart totals show PLG + SLG + recurring-income ARR. One rate set per scenario drives the full horizon. All figures are model estimates for planning, not forecasts.</p>
   </div>
@@ -321,6 +329,7 @@ const S = {
   fundAmt: 5000000,
   fundMo:  7,
   startMonthOffset: 5,
+  slgBilling: 'upfront',  // 'upfront' | 'smooth'
   fundScenarios: {S1:false, S2:false, S3:false},
   adjScenarios:  {S1:true,  S2:true,  S3:true},
   events: [
@@ -377,7 +386,8 @@ function simulate(cfg, horizon){
   const {startCash, startPlgMrr, startSlgMrr, startBurn,
          plgG, plgC, slgG, slgC, slgE,
          expGrowth, fundAmt, fundMo, events, arrEvents,
-         useRevenue, useEvents, useFunding} = cfg;
+         useRevenue, useEvents, useFunding, slgBilling} = cfg;
+  const smooth = (slgBilling==='smooth');
 
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
   let cash=startCash, plgMrr=startPlgMrr, runout=null;
@@ -385,11 +395,10 @@ function simulate(cfg, horizon){
   // SLG opening base (annual ARR value), stepped by NDR annually
   let slgOpenArr = startSlgMrr*12;
 
-  // SLG new-booking cohorts: {arr: current annual value, bookMonth}
+  // SLG new-booking cohorts (upfront mode): {arr, bookMonth}
   const cohorts=[];
   let pendingBookingCash=0;
 
-  // One-off ARR events (NELSON-style): add to SLG base ARR at their month
   const deals=(useRevenue&&useEvents&&arrEvents&&arrEvents.length)
     ? arrEvents.map(e=>({arrAdded:(e.amount||0), startMonth:e.month, applied:false}))
     : [];
@@ -397,6 +406,8 @@ function simulate(cfg, horizon){
   const pg=plgG, pc=plgC, sg=slgG;
   const scAnnual=slgC, seAnnual=slgE;
   const ndr = 1 - (scAnnual||0)/100 + (seAnnual||0)/100;
+  // Smooth mode: convert annual NDR to equivalent monthly factor so ARR tracks continuously
+  const ndrMonthly = Math.pow(Math.max(ndr,0.0001), 1/12);
 
   for(let m=1;m<=horizon;m++){
     const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
@@ -406,35 +417,40 @@ function simulate(cfg, horizon){
       if(m===d.startMonth&&!d.applied){slgOpenArr+=d.arrAdded;d.applied=true;}
     }
 
-    // ── SLG annual NDR step on opening base (months 13,25,37...) ──
-    if(useRevenue && m>1 && (m-1)%12===0){
-      slgOpenArr *= ndr;
-    }
-
-    // ── SLG cohort renewals this month (renew at ×NDR, collect upfront cash) ──
     let slgCashThisMonth = 0;
+
+    // ── ARR engine (identical in both billing modes) ──
+    // Annual NDR step on opening base (months 13,25,37...)
+    if(useRevenue && m>1 && (m-1)%12===0){ slgOpenArr *= ndr; }
+    // Cohort renewals (renew ×NDR). Cash collected only in upfront mode.
     if(useRevenue) for(const c of cohorts){
       const age = m - c.bookMonth;
       if(age>0 && age%12===0){
         c.arr *= ndr;
-        slgCashThisMonth += c.arr;
+        if(!smooth) slgCashThisMonth += c.arr;   // upfront: re-collect on renewal
       }
     }
-
-    // ── Collect last month's new bookings (upfront, 1-month lag) ──
-    slgCashThisMonth += pendingBookingCash;
-    pendingBookingCash = 0;
-
-    // ── Opening base monthly cash (smooth run-rate) ──
-    if(useRevenue) slgCashThisMonth += slgOpenArr/12;
-
-    // ── Book new SLG this month (monthly rate on current total SLG ARR) ──
-    let cohortArrSum=0; for(const c of cohorts) cohortArrSum+=c.arr;
-    const currentSlgArr = slgOpenArr + cohortArrSum;
+    // Book new SLG this month (adds to ARR via cohorts in both modes)
+    let cohortArrSumPre=0; for(const c of cohorts) cohortArrSumPre+=c.arr;
+    const currentSlgArr = slgOpenArr + cohortArrSumPre;
+    let newBooking=0;
     if(useRevenue && sg>0){
-      const newBooking = currentSlgArr * (sg/100);
+      newBooking = currentSlgArr * (sg/100);
       cohorts.push({arr:newBooking, bookMonth:m});
-      pendingBookingCash += newBooking;
+    }
+
+    // ── Cash collection (differs by mode) ──
+    if(useRevenue){
+      if(!smooth){
+        // UPFRONT: opening base run-rate + last month's bookings (1-mo lag)
+        slgCashThisMonth += pendingBookingCash;
+        pendingBookingCash = newBooking;         // this month's booking collected next month
+        slgCashThisMonth += slgOpenArr/12;
+      } else {
+        // SMOOTH: total SLG ARR collected evenly, no upfront lump, no lag
+        let cohortSumNow=0; for(const c of cohorts) cohortSumNow+=c.arr;
+        slgCashThisMonth += (slgOpenArr + cohortSumNow)/12;
+      }
     }
 
     // PLG revenue (monthly billing)
@@ -493,6 +509,7 @@ function makeCfg(id){
          expGrowth:sc.expGrowth, fundAmt:S.fundAmt, fundMo:S.fundMo,
          events:S.events, arrEvents:S.arrEvents,
          useRevenue:sc.useRevenue,
+         slgBilling:S.slgBilling,
          useEvents: id==='S0' ? false : (S.adjScenarios[id]||false),
          useFunding: id==='S0' ? false : (S.fundScenarios[id]||false)};
 }
@@ -841,6 +858,21 @@ function setSc(id,key,val){const v=parseFloat(val);if(isNaN(v))return;S.sc[id][k
 function stepSc(id,key,delta){S.sc[id][key]=Math.max(0,Math.round(((S.sc[id][key]||0)+delta)*100)/100);refresh();}
 
 // ── TOGGLE FUNCTIONS ──────────────────────────────────────────────────────
+function setBilling(mode){
+  S.slgBilling=mode;
+  const up=document.getElementById('bill-upfront'), sm=document.getElementById('bill-smooth');
+  const tag=document.getElementById('cash-mode-tag');
+  if(mode==='upfront'){
+    up.style.background='var(--blu)'; up.style.color='#fff';
+    sm.style.background='var(--bg3)'; sm.style.color='var(--muted)';
+    if(tag){tag.textContent='· SLG upfront annual'; tag.style.color='var(--bs)';}
+  } else {
+    sm.style.background='var(--amb)'; sm.style.color='#1a1200';
+    up.style.background='var(--bg3)'; up.style.color='var(--muted)';
+    if(tag){tag.textContent='· SLG smooth monthly (conservative)'; tag.style.color='var(--as)';}
+  }
+  refresh();
+}
 function toggleAdj(id){
   S.adjScenarios[id]=!S.adjScenarios[id];
   refresh();
@@ -1015,7 +1047,9 @@ function init(){
   });
   document.getElementById('in-fund-amt').addEventListener('input',function(){S.fundAmt=parseFloat(this.value)||0;refresh();});
   document.getElementById('in-fund-mo').addEventListener('change',function(){const v=parseInt(this.value);if(!isNaN(v)){S.fundMo=v;refresh();}});
-  initChart();initArrChart();refresh();
+  initChart();initArrChart();
+  setBilling(S.slgBilling);
+  refresh();
 }
 document.addEventListener('DOMContentLoaded',init);
 </script>
