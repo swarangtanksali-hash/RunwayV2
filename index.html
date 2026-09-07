@@ -186,7 +186,7 @@ canvas{display:block}
         <option value="12">Mar '27</option>
       </select>
     </div>
-    <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="3100000"></div>
+    <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="3125000"></div>
     <div class="ig">
       <div class="ig-lbl">Total ARR ($) <em id="total-mrr-hint"></em></div>
       <input class="fi" type="number" id="in-total-arr" value="313000">
@@ -281,7 +281,7 @@ canvas{display:block}
       <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
     </div>
     <canvas id="arr-chart" height="140"></canvas>
-    <div id="arr-milestones" style="position:absolute;top:44px;left:52px;z-index:5;pointer-events:none"></div>
+    <div id="arr-milestones" style="position:absolute;top:64px;left:52px;z-index:5;pointer-events:none"></div>
   </div>
 </div>
 
@@ -302,7 +302,7 @@ const JAN28_ABS = 21; // 0-based from Apr'26
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 const S = {
-  cash:    3100000,
+  cash:    3125000,
   totalArr:313000,
   plgArr:  99000,
   slgArr:  214000,
@@ -314,7 +314,7 @@ const S = {
   adjScenarios:  {S1:true,  S2:true,  S3:true},
   events: [
     {id:1, label:'Marketing Burst', type:'expense', amount:null, month:2, monthEnd:2, recurring:false},
-    {id:2, label:'AI Revenues', type:'income', amount:null, month:2, monthEnd:HORIZON, recurring:true},
+    {id:2, label:'AI Revenues', type:'income', amount:null, month:2, monthEnd:HORIZON, recurring:true, growthPct:10},
   ],
   arrEvents: [
     {id:3, label:'NELSON', amount:50000, month:1},
@@ -388,23 +388,26 @@ function simulate(cfg, horizon){
     }
 
     // Events: expense (cash −), savings (cash +), income (cash + monthly)
-    // Recurring income = decoupled flat ARR: adds monthly cash AND flat (amt×12) to ARR
-    // (no compounding). ARR block persists permanently once started.
+    // Recurring income = decoupled ARR: monthly cash + flat (amt×12) to ARR.
+    // If growthPct set, the monthly amount compounds each active month.
+    // ARR = current month's grown amount × 12. Persists at last value after window.
     let evD=0, flatArr=0;
     if(useEvents&&events) for(const e of events){
       const end=e.monthEnd||e.month;
       const amt=e.amount||0;
       const active = m>=e.month && m<=end;
-      const started = m>=e.month; // for persistent ARR after window ends
+      const started = m>=e.month;
       if(e.type==='expense'){
         if(active) evD-=amt;
       } else if(e.type==='savings'){
         if(active) evD+=amt;
       } else if(e.type==='income'){
-        // Monthly cash only during active window
-        if(active) evD+=amt;
-        // Flat ARR block (amt×12) persists from start month onward, no compounding
-        if(started) flatArr+=amt*12;
+        const g=(e.growthPct||0)/100;
+        // Months elapsed since start (0 at start month). After window end, freeze at last active month's value.
+        const monthsElapsed = started ? Math.min(m, end) - e.month : 0;
+        const grownAmt = amt * Math.pow(1+g, Math.max(monthsElapsed,0));
+        if(active) evD += grownAmt;          // monthly cash at grown rate
+        if(started) flatArr += grownAmt*12;  // ARR = grown monthly × 12, persists after window
       }
     }
     const fd=(useFunding&&fundAmt>0&&m===fundMo)?fundAmt:0;
@@ -569,14 +572,20 @@ function buildExec(){
     }
   }
 
-  // AI Revenues (recurring income) impact over a 12-month period
-  const aiRev=S.events.find(e=>e.type==='income'&&e.recurring&&(e.amount||0)>0);
+  // AI Revenues (recurring income) impact — always shown
+  const aiRev=S.events.find(e=>e.type==='income'&&e.recurring);
   if(aiRev){
-    // Impact of removing AI Revenues on S2 runway
-    const wo=simulate({...makeCfg('S2'),events:S.events.filter(x=>x.id!==aiRev.id)},60).runway;
-    const daysAdded=Math.round((s2rw-wo)*30.4375);
-    const twelveMoCash=aiRev.amount*12;
-    lines.push(`• <span class="np">${aiRev.label}</span> at <span class="ng">${fs$(aiRev.amount)}/mo</span> (<span class="ng">${fs$(twelveMoCash)}</span> over 12 mo) adds <span class="ng">~${Math.abs(daysAdded)} days</span> of runway (S2).`);
+    if((aiRev.amount||0)>0){
+      const wo=simulate({...makeCfg('S2'),events:S.events.filter(x=>x.id!==aiRev.id)},60).runway;
+      const daysAdded=Math.round((s2rw-wo)*30.4375);
+      const g=aiRev.growthPct||0;
+      // 12-month cumulative cash with growth
+      let twelveMoCash=0; for(let k=0;k<12;k++) twelveMoCash+=aiRev.amount*Math.pow(1+g/100,k);
+      const gTxt=g>0?` growing <span class="na">${g}%/mo</span>`:'';
+      lines.push(`• <span class="np">${aiRev.label}</span> at <span class="ng">${fs$(aiRev.amount)}/mo</span>${gTxt} (<span class="ng">${fs$(twelveMoCash)}</span> over 12 mo) adds <span class="ng">~${Math.abs(daysAdded)} days</span> of runway (S2).`);
+    } else {
+      lines.push(`• <span class="np">${aiRev.label}</span>: enter an amount in the adjustments to see its runway impact.`);
+    }
   }
 
   return lines.map(l=>`<p style="margin-bottom:5px">${l}</p>`).join('');
@@ -749,6 +758,7 @@ function sharedAdjHTML(){
     return`<div class="ev-tag">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span style="font-family:var(--mono);font-size:10px;color:var(--text);flex:1">${e.label}${e.recurring?` <span style="font-size:8px;color:var(--amb)">rec</span>`:''}${(e.type==='income'&&e.recurring)?` <span style="font-size:8px;color:var(--pur)">+ARR</span>`:''}</span>
+        ${(e.type==='income'&&e.recurring)?`<span style="font-family:var(--mono);font-size:8px;color:var(--dim)">g%</span><input type="number" title="Monthly growth %" style="width:44px;background:var(--bg4);border:.5px solid var(--border);color:var(--as);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.growthPct!=null?e.growthPct:0}" onchange="updateEvGrowth(${e.id},this.value)">`:''}
         <select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateEvMonth(${e.id},+this.value)">${moOpts}</select>
         ${end?`→<select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateEvMonthEnd(${e.id},+this.value)">${moEndOpts}</select>`:''}
         <input type="number" placeholder="enter amount" style="width:96px;background:var(--bg4);border:.5px solid var(--border);color:${isExp?'var(--rs)':'var(--gs)'};font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount!=null?e.amount:''}" onchange="updateEvAmt(${e.id},this.value)">
@@ -775,6 +785,7 @@ function sharedAdjHTML(){
 }
 
 function updateEvMonth(id,m){const e=S.events.find(x=>x.id===id);if(e){e.month=m;if(e.monthEnd<m)e.monthEnd=m;}refresh();}
+function updateEvGrowth(id,v){const e=S.events.find(x=>x.id===id);if(e){const n=parseFloat(v);e.growthPct=isNaN(n)?0:n;}refresh();}
 function updateEvMonthEnd(id,m){const e=S.events.find(x=>x.id===id);if(e){e.monthEnd=Math.max(m,e.month);}refresh();}
 function updateEvAmt(id,v){const e=S.events.find(x=>x.id===id);if(e){const n=parseFloat(v);e.amount=(isNaN(n)||n<=0)?null:n;}refresh();}
 function updateArrEvMonth(id,m){const e=S.arrEvents.find(x=>x.id===id);if(e)e.month=m;refresh();}
@@ -907,7 +918,7 @@ function updateArrChart(){
       if(val===undefined) continue;
       inner+=`<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:${scColors[i]};line-height:1.4">${scLbls[i]} ${fs$(val)}</div>`;
     }
-    boxHtml+=`<div style="background:rgba(13,17,23,0.82);border:.5px solid var(--border);border-radius:4px;padding:5px 9px;backdrop-filter:blur(2px)">${inner}</div>`;
+    boxHtml+=`<div style="background:rgba(28,35,51,0.72);border:.5px solid var(--border);border-radius:4px;padding:5px 9px;backdrop-filter:blur(3px)">${inner}</div>`;
   }
   boxHtml+='</div>';
   document.getElementById('arr-milestones').innerHTML=boxHtml;
