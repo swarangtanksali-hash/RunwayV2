@@ -75,8 +75,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
 .sc-rate-row{display:grid;grid-template-columns:50px 78px 78px;gap:6px;align-items:center}
-.sc-2row-chk{align-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
-.sc-chk{width:14px;height:14px;cursor:pointer;border-radius:3px}
+.sc-2row-chk{align-self:center;display:flex;align-items:center;justify-content:center;height:100%;padding-top:2px}
+.sc-chk{width:15px;height:15px;cursor:pointer;border-radius:3px;margin:0 auto;display:block}
 .sc-chk:disabled{opacity:0.25;cursor:not-allowed}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
@@ -308,15 +308,15 @@ const S = {
   fundAmt: 0,
   fundMo:  1,
   startMonthOffset: 5,
-  fundScenarios: {S1:false, S2:false, S3:true},
-  adjScenarios:  {S1:false, S2:true,  S3:true},
+  fundScenarios: {S1:false, S2:false, S3:false},
+  adjScenarios:  {S1:false, S2:false, S3:false},
   events: [],
   arrEvents: [],
   sc: {
-    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,   slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false },
-    S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:7.5, slgC2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
-    S2: { plgG:30, plgG2:30, plgC:16, plgC2:16, slgG:15, slgG2:15, slgC:5,   slgC2:4,  expGrowth:0, useRevenue:true,  useEvents:true  },
-    S3: { plgG:30, plgG2:30, plgC:16, plgC2:16, slgG:20, slgG2:15, slgC:4,   slgC2:3,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,  slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false },
+    S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S2: { plgG:30, plgG2:30, plgC:17, plgC2:17, slgG:15, slgG2:15, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S3: { plgG:30, plgG2:30, plgC:15, plgC2:15, slgG:20, slgG2:20, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
   }
 };
 let nextId = 1;
@@ -362,8 +362,10 @@ function simulate(cfg, horizon){
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
   let cash=startCash, plgMrr=startPlgMrr, slgMrr=startSlgMrr, runout=null;
 
-  const deals=(useRevenue&&arrEvents&&arrEvents.length)
-    ? arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12}))
+  // One-off ARR events: added to MRR base at their month and compound forward
+  // Each deal also contributes to cash as recurring revenue from its start month
+  const deals=(useRevenue&&useEvents&&arrEvents&&arrEvents.length)
+    ? arrEvents.map(e=>({mrrAdded:e.amount/12, startMonth:e.month, applied:false}))
     : [];
 
   for(let m=1;m<=horizon;m++){
@@ -374,6 +376,12 @@ function simulate(cfg, horizon){
 
     const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
 
+    // Apply one-off ARR deals: add to SLG MRR base at their start month (compounds from then)
+    if(useRevenue&&useEvents) for(const d of deals){
+      if(m===d.startMonth&&!d.applied){slgMrr+=d.mrrAdded;d.applied=true;}
+    }
+
+    // Cash-only events (expense, income, savings) — not ARR
     let evD=0;
     if(useEvents&&events) for(const e of events){
       const end=e.monthEnd||e.month;
@@ -381,10 +389,7 @@ function simulate(cfg, horizon){
     }
     const fd=(useFunding&&fundAmt>0&&m===fundMo)?fundAmt:0;
 
-    let dealMrr=0;
-    if(useRevenue) for(const d of deals) if(m>=d.startMonth) dealMrr+=d.mrrContrib;
-
-    const rev=useRevenue?(plgMrr+slgMrr+dealMrr):0;
+    const rev=useRevenue?(plgMrr+slgMrr):0;
     const prev=cash;
     cash=cash-burn+rev+evD+fd;
     cashArr.push(Math.max(cash,0));
@@ -394,13 +399,10 @@ function simulate(cfg, horizon){
     if(useRevenue){
       plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
       slgMrr=Math.max(slgMrr+slgMrr*(sg/100)-slgMrr*(sc/100),0);
-      for(const d of deals){
-        if(m===d.renewalMonth){d.mrrContrib=d.mrrContrib*(1-sc/100);d.renewalMonth+=12;}
-      }
     }
     plgSeries.push(plgMrr*12);
     slgSeries.push(slgMrr*12);
-    dealArrSeries.push(dealMrr*12);
+    dealArrSeries.push(0); // deals now baked into slgMrr, not tracked separately
   }
   return{arr:cashArr, plgArr:plgSeries, slgArr:slgSeries, dealArr:dealArrSeries,
          runway:runout!==null?runout:(cash>0?horizon:0), finalCash:cashArr[horizon]};
@@ -637,8 +639,8 @@ function closeForm(){document.getElementById('ev-form-wrap').classList.remove('o
 const SC_META={
   S0:{name:'S0 Burn Only',desc:'Pure burn. No revenue or adjustments.',isPlan:false,pill:'p-r',rc:'col-m'},
   S1:{name:'S1 Conservative',desc:'Current run rates.',isPlan:false,pill:'p-r',rc:'col-r'},
-  S2:{name:'S2 Realistic',   desc:'PLG + SLG plan case.',isPlan:true,pill:'p-b',rc:'col-b'},
-  S3:{name:'S3 Optimistic',  desc:'Funding applied if entered.',isPlan:false,pill:'p-g',rc:'col-g'},
+  S2:{name:'S2 Realistic',   desc:'',isPlan:true,pill:'p-b',rc:'col-b'},
+  S3:{name:'S3 Optimistic',  desc:'',isPlan:false,pill:'p-g',rc:'col-g'},
 };
 
 function inpD(v){return `<input class="sc-inp" type="number" value="${v}" disabled>`;}
@@ -747,16 +749,15 @@ function toggleFundScenario(id, checked){
 let chart=null,arrChart=null;
 
 function buildChartLabels(){
-  // index 0 = opening (start month), index 1..HORIZON = months 1..36
   return Array.from({length:HORIZON+1},(_,i)=>moLbl(i+1));
-  // Note: series[0] is the opening snapshot at start of month 1,
-  // series[m] is end-of-month m. Labels correctly align as month labels.
 }
 
-// Quarterly tick callback: only show label if index is multiple of 3
-function quarterlyTicks(val, index){
-  if(index % 3 === 0) return this.getLabelForValue(val);
-  return '';
+// Dec '28 absolute index from Apr'26 = 32 (0-based)
+const DEC28_ABS = 32;
+function getChartDisplayMonths(){
+  // How many months from start to Dec '28
+  const rel = DEC28_ABS - S.startMonthOffset + 1; // 1-based
+  return Math.min(Math.max(rel, 6), HORIZON); // clamp between 6 and HORIZON
 }
 
 function splitAtCashout(arr){
@@ -798,8 +799,15 @@ function initChart(){
 
 function updateChart(){
   if(!chart)return;
-  chart.data.labels=buildChartLabels();
-  ['S0','S1','S2','S3'].forEach((id,i)=>{const raw=runSc(id,HORIZON).arr,{solid,dashed}=splitAtCashout(raw);chart.data.datasets[i].data=solid;chart.data.datasets[i+4].data=dashed;});
+  const cap=getChartDisplayMonths()+1; // +1 for index 0
+  const labels=buildChartLabels().slice(0,cap);
+  chart.data.labels=labels;
+  ['S0','S1','S2','S3'].forEach((id,i)=>{
+    const raw=runSc(id,HORIZON).arr.slice(0,cap);
+    const{solid,dashed}=splitAtCashout(raw);
+    chart.data.datasets[i].data=solid;
+    chart.data.datasets[i+4].data=dashed;
+  });
   chart.update('none');updateCashExhaustionBox();
 }
 
@@ -825,11 +833,13 @@ function initArrChart(){
 
 function updateArrChart(){
   if(!arrChart)return;
-  arrChart.data.labels=buildChartLabels();
+  const cap=getChartDisplayMonths()+1;
+  const labels=buildChartLabels().slice(0,cap);
+  arrChart.data.labels=labels;
   const s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
-  arrChart.data.datasets[0].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]+(s1.dealArr?s1.dealArr[i]:0));
-  arrChart.data.datasets[1].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]+(s2.dealArr?s2.dealArr[i]:0));
-  arrChart.data.datasets[2].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]+(s3.dealArr?s3.dealArr[i]:0));
+  arrChart.data.datasets[0].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]).slice(0,cap);
+  arrChart.data.datasets[1].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]).slice(0,cap);
+  arrChart.data.datasets[2].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]).slice(0,cap);
   arrChart.update('none');
 }
 
