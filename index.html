@@ -65,20 +65,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
-.th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:center}
+.stbl-hd{display:grid;grid-template-columns:120px 84px 42px 64px 64px 40px 40px 84px 84px;padding:6px 10px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:5px}
+.th{font-family:var(--mono);font-size:9px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:center}
 .th.left{justify-content:flex-start}
 .th.blu{color:var(--bs)}.th.red{color:var(--rs)}
-.grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;gap:6px;padding:0 12px;align-items:center}
+.grid6{display:grid;grid-template-columns:120px 84px 42px 64px 64px 40px 40px 84px 84px;gap:5px;padding:0 10px;align-items:center}
 
-.sc-2row{display:grid;grid-template-columns:130px 100px calc(50px + 78px + 78px + 12px) 52px 52px;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
+.sc-2row{display:grid;grid-template-columns:120px 84px calc(42px + 64px + 64px + 10px) 40px 40px 84px 84px;gap:0 5px;padding:8px 10px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
-.sc-rate-row{display:grid;grid-template-columns:50px 78px 78px;gap:6px;align-items:center}
+.sc-rate-row{display:grid;grid-template-columns:42px 64px 64px;gap:5px;align-items:center}
 .sc-2row-chk{align-self:center;display:flex;align-items:center;justify-content:center}
-.sc-chk{width:15px;height:15px;cursor:pointer;margin:0}
+.sc-chk{width:14px;height:14px;cursor:pointer;margin:0}
 .sc-chk:disabled{opacity:0.25;cursor:not-allowed}
+.sc-2row-ms{align-self:center;display:flex;flex-direction:column;gap:1px;font-family:var(--mono);font-size:8px;line-height:1.3;padding-left:1px}
+.ms-plg{color:var(--cyans)}.ms-slg{color:var(--pur)}.ms-tot{color:var(--text);font-weight:600;border-top:.5px solid var(--border2);padding-top:1px;margin-top:1px}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .srow-parent{padding-top:8px;padding-bottom:5px}
@@ -219,6 +221,8 @@ canvas{display:block}
       <div class="th red left">Churn % /mo</div>
       <div class="th" style="color:var(--bs)">Adj</div>
       <div class="th" style="color:var(--gs)">Fund</div>
+      <div class="th" id="ms-hd-1" style="color:var(--as)">Dec '26</div>
+      <div class="th" id="ms-hd-2" style="color:var(--as)">Mar '27</div>
     </div>
 
     <div id="srows"></div>
@@ -448,6 +452,19 @@ function trueRunway(id){
   const r=runSc(id,HORIZON);
   if(r.runway<HORIZON)return r.runway;
   return simulate(makeCfg(id),60).runway;
+}
+
+// ARR (plg, slg, deal/AI, total) at an absolute month index (0=Apr'26)
+// Returns null if the milestone month is before the dashboard start.
+function arrAtMonth(id, absMonth){
+  const relIdx = absMonth - S.startMonthOffset; // 0-based into series (index 0 = start month)
+  if(relIdx<0) return null;
+  const r=runSc(id,HORIZON);
+  if(relIdx>=r.plgArr.length) return null;
+  const plg=r.plgArr[relIdx]||0;
+  const slg=r.slgArr[relIdx]||0;
+  const deal=(r.dealArr&&r.dealArr[relIdx])||0;
+  return {plg, slg, deal, total:plg+slg+deal};
 }
 
 // ── EXEC SUMMARY ──────────────────────────────────────────────────────────
@@ -703,6 +720,8 @@ function renderScRows(){
     <div></div><div></div><div></div>
     <div class="sc-2row-chk"><input type="checkbox" class="sc-chk" disabled></div>
     <div class="sc-2row-chk"><input type="checkbox" class="sc-chk" disabled></div>
+    <div class="sc-2row-ms" style="color:var(--muted);opacity:.4">—</div>
+    <div class="sc-2row-ms" style="color:var(--muted);opacity:.4">—</div>
   </div>`;
 
   function scBlock(id, opts){
@@ -720,6 +739,15 @@ function renderScRows(){
     const planBg=meta.isPlan?'background:var(--plan-bg);border-left:2px solid var(--blu);':'';
     const adjOn=S.adjScenarios[id]||false;
     const fundOn=S.fundScenarios[id]||false;
+    const msCell=(absMonth)=>{
+      const d=arrAtMonth(id,absMonth);
+      if(!d) return `<div class="sc-2row-ms" style="color:var(--muted);opacity:.5">—</div>`;
+      return `<div class="sc-2row-ms">
+        <div class="ms-plg">P ${fs$(d.plg)}</div>
+        <div class="ms-slg">S ${fs$(d.slg)}</div>
+        <div class="ms-tot">T ${fs$(d.total)}</div>
+      </div>`;
+    };
     return `<div class="sc-2row" style="${planBg}${borderTop}${opacity}">
       <div class="sc-2row-left"><div class="sn-name">${nameHtml}</div><div class="sn-desc">${meta.desc}</div></div>
       <div class="sc-2row-rw">${rwCell(id)}</div>
@@ -733,6 +761,8 @@ function renderScRows(){
       <div class="sc-2row-chk">
         <input type="checkbox" class="sc-chk" ${fundOn?'checked':''} style="accent-color:var(--grn)" onchange="toggleFundScenario('${id}',this.checked)">
       </div>
+      ${msCell(8)}
+      ${msCell(11)}
     </div>`;
   }
 
@@ -742,6 +772,10 @@ function renderScRows(){
 
   document.getElementById('srows').innerHTML=html;
   document.getElementById('shared-adj').innerHTML=sharedAdjHTML();
+  // Dynamic milestone header labels (fixed at Dec '26 and Mar '27)
+  const h1=document.getElementById('ms-hd-1'), h2=document.getElementById('ms-hd-2');
+  if(h1) h1.textContent=absToLbl(8);
+  if(h2) h2.textContent=absToLbl(11);
 }
 
 function sharedAdjHTML(){
