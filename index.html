@@ -71,7 +71,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .th.blu{color:var(--bs)}.th.red{color:var(--rs)}
 .grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;gap:6px;padding:0 12px;align-items:center}
 
-.sc-2row{display:grid;grid-template-columns:130px 100px 1fr 52px 52px;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
+.sc-2row{display:grid;grid-template-columns:130px 100px calc(50px + 78px + 78px + 12px) 52px 52px;gap:0 6px;padding:8px 12px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
