@@ -569,6 +569,16 @@ function buildExec(){
     }
   }
 
+  // AI Revenues (recurring income) impact over a 12-month period
+  const aiRev=S.events.find(e=>e.type==='income'&&e.recurring&&(e.amount||0)>0);
+  if(aiRev){
+    // Impact of removing AI Revenues on S2 runway
+    const wo=simulate({...makeCfg('S2'),events:S.events.filter(x=>x.id!==aiRev.id)},60).runway;
+    const daysAdded=Math.round((s2rw-wo)*30.4375);
+    const twelveMoCash=aiRev.amount*12;
+    lines.push(`• <span class="np">${aiRev.label}</span> at <span class="ng">${fs$(aiRev.amount)}/mo</span> (<span class="ng">${fs$(twelveMoCash)}</span> over 12 mo) adds <span class="ng">~${Math.abs(daysAdded)} days</span> of runway (S2).`);
+  }
+
   return lines.map(l=>`<p style="margin-bottom:5px">${l}</p>`).join('');
 }
 
@@ -887,17 +897,17 @@ function updateArrChart(){
   const scColors=['#f97316','#3b82f6','#22c55e'];
   const scLbls=['S1','S2','S3'];
   const allD=[s1d,s2d,s3d];
-  let boxHtml='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  let boxHtml='<div style="display:flex;gap:7px;flex-wrap:wrap">';
   for(const ms of milestones){
     const idx=ms.abs-S.startMonthOffset; // 0-based into series
     if(idx<0||idx>=cap){continue;}
-    let inner=`<div style="font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.06em;margin-bottom:2px;text-transform:uppercase">${ms.label}</div>`;
+    let inner=`<div style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.06em;margin-bottom:3px;text-transform:uppercase">${ms.label}</div>`;
     for(let i=0;i<3;i++){
       const val=allD[i][idx];
       if(val===undefined) continue;
-      inner+=`<div style="font-family:var(--mono);font-size:9px;font-weight:600;color:${scColors[i]};line-height:1.35">${scLbls[i]} ${fs$(val)}</div>`;
+      inner+=`<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:${scColors[i]};line-height:1.4">${scLbls[i]} ${fs$(val)}</div>`;
     }
-    boxHtml+=`<div style="background:rgba(13,17,23,0.82);border:.5px solid var(--border);border-radius:4px;padding:4px 7px;backdrop-filter:blur(2px)">${inner}</div>`;
+    boxHtml+=`<div style="background:rgba(13,17,23,0.82);border:.5px solid var(--border);border-radius:4px;padding:5px 9px;backdrop-filter:blur(2px)">${inner}</div>`;
   }
   boxHtml+='</div>';
   document.getElementById('arr-milestones').innerHTML=boxHtml;
