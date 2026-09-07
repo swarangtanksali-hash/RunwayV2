@@ -303,22 +303,13 @@ canvas{display:block}
     <p style="margin-bottom:8px;padding-left:14px">• <strong>Opening SLG base ($214K)</strong> is treated as a flat monthly run-rate (base ÷ 12 collected each month) for simplicity — it is not cohort-tracked. Once per year the NDR step is applied to the base so it gently rises or falls annually rather than dropping off a cliff.</p>
     <p style="margin-bottom:8px">Because SLG cash is collected upfront on bookings and renewals, the <strong>Cash Runway</strong> line is lumpier than a smoothed run-rate model and generally shows more cash during growth phases — this reflects real annual-contract billing. The <strong>ARR chart</strong> remains a smoother measure of contracted run-rate. The two are intentionally decoupled.</p>
     <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong>: <em>Expense</em> and <em>Savings</em> affect cash only. <em>One-time ARR</em> (e.g. a named deal) is added to the SLG base and follows the annual NDR thereafter. <em>Recurring income</em> (e.g. AI Revenues) is decoupled from PLG/SLG — it adds monthly cash (optionally growing at a monthly rate) and shows on the ARR chart as the current monthly amount × 12; it persists at its last value after its window ends.</p>
-    <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cumulative cash reaches zero. Milestone columns (Dec '26 / Mar '27) and the ARR chart totals show PLG + SLG + recurring-income ARR. Phase-2 rate assumptions apply from Jan '28 onward where set. All figures are model estimates for planning, not forecasts.</p>
+    <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cumulative cash reaches zero. Milestone columns (Dec '26 / Mar '27) and the ARR chart totals show PLG + SLG + recurring-income ARR. One rate set per scenario drives the full horizon. All figures are model estimates for planning, not forecasts.</p>
   </div>
 </div>
 
 <script>
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
 const HORIZON = 36; // fixed 36-month horizon from start month
-
-// PHASE2_START is relative to start month index (month 19 from Apr'26 = Jan'28)
-// We'll compute it dynamically based on startMonthOffset
-// Jan '28 = absolute month index 22 from Apr'26 (0-based: Apr'26=0)
-
-// Absolute month index from Apr '26 (Apr'26 = 0)
-// Sep'26 = 5, Oct'26 = 6 ... Mar'27 = 11
-// Jan'28 = 21 (absolute)
-const JAN28_ABS = 21; // 0-based from Apr'26
 
 // ── STATE ─────────────────────────────────────────────────────────────────
 const S = {
@@ -327,7 +318,7 @@ const S = {
   plgArr:  99000,
   slgArr:  214000,
   burn:    290000,
-  fundAmt: 0,
+  fundAmt: 5000000,
   fundMo:  1,
   startMonthOffset: 5,
   fundScenarios: {S1:false, S2:false, S3:false},
@@ -337,13 +328,13 @@ const S = {
     {id:2, label:'AI Revenues', type:'income', amount:null, month:2, monthEnd:HORIZON, recurring:true, growthPct:10},
   ],
   arrEvents: [
-    {id:3, label:'NELSON', amount:50000, month:1},
+    {id:3, label:'NELSON', amount:null, month:1},
   ],
   sc: {
-    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,  slgC2:0,  slgE:0,  slgE2:0,  expGrowth:0, useRevenue:false, useEvents:false },
-    S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:5,  slgC2:5,  slgE:10, slgE2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
-    S2: { plgG:30, plgG2:30, plgC:17, plgC2:17, slgG:15, slgG2:15, slgC:5,  slgC2:5,  slgE:10, slgE2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
-    S3: { plgG:30, plgG2:30, plgC:15, plgC2:15, slgG:20, slgG2:20, slgC:5,  slgC2:5,  slgE:10, slgE2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S0: { plgG:0,  plgC:0,  slgG:0,  slgC:0,  slgE:0,  expGrowth:0, useRevenue:false, useEvents:false },
+    S1: { plgG:24, plgC:19, slgG:10, slgC:5,  slgE:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S2: { plgG:30, plgC:17, slgG:15, slgC:5,  slgE:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S3: { plgG:30, plgC:15, slgG:20, slgC:5,  slgE:10, expGrowth:0, useRevenue:true,  useEvents:true  },
   }
 };
 let nextId = 4;
@@ -361,12 +352,6 @@ function absToLbl(absIdx){
 // moLbl: relative month m (1-based from start) → label
 function moLbl(m){
   return absToLbl(S.startMonthOffset + (m-1));
-}
-
-// Phase2 start relative to current start month
-function getPhase2Rel(){
-  const rel = JAN28_ABS - S.startMonthOffset + 1; // 1-based relative
-  return Math.max(rel, 1);
 }
 
 function f$(n){const a=Math.abs(n),s=n<0?'-':'';if(a>=1e6)return s+'$'+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+'$'+(a/1e3).toFixed(0)+'K';return s+'$'+Math.round(a).toLocaleString();}
@@ -390,9 +375,9 @@ function fAnn(m){return((1-Math.pow(1-m/100,12))*100).toFixed(1)+'%'}
 function simulate(cfg, horizon){
   horizon = horizon || HORIZON;
   const {startCash, startPlgMrr, startSlgMrr, startBurn,
-         plgG, plgG2, plgC, plgC2, slgG, slgG2, slgC, slgC2, slgE, slgE2,
+         plgG, plgC, slgG, slgC, slgE,
          expGrowth, fundAmt, fundMo, events, arrEvents,
-         useRevenue, useEvents, useFunding, phase2Start} = cfg;
+         useRevenue, useEvents, useFunding} = cfg;
 
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
   let cash=startCash, plgMrr=startPlgMrr, runout=null;
@@ -401,32 +386,27 @@ function simulate(cfg, horizon){
   let slgOpenArr = startSlgMrr*12;
 
   // SLG new-booking cohorts: {arr: current annual value, bookMonth}
-  // Renewal at bookMonth+12, +24 ... value ×= NDR at each renewal.
   const cohorts=[];
-  // Pending cash to collect next month (upfront annual bookings collected 1mo later)
   let pendingBookingCash=0;
 
-  // One-off ARR events (NELSON-style): add to SLG base ARR at their month, then behave like base
+  // One-off ARR events (NELSON-style): add to SLG base ARR at their month
   const deals=(useRevenue&&useEvents&&arrEvents&&arrEvents.length)
     ? arrEvents.map(e=>({arrAdded:(e.amount||0), startMonth:e.month, applied:false}))
     : [];
 
-  for(let m=1;m<=horizon;m++){
-    const pg=(m>=phase2Start)?plgG2:plgG;
-    const pc=(m>=phase2Start)?plgC2:plgC;
-    const sg=(m>=phase2Start)?slgG2:slgG;
-    const scAnnual=(m>=phase2Start)?slgC2:slgC;   // annual churn %
-    const seAnnual=(m>=phase2Start)?slgE2:slgE;   // annual expansion %
-    const ndr = 1 - (scAnnual||0)/100 + (seAnnual||0)/100;
+  const pg=plgG, pc=plgC, sg=slgG;
+  const scAnnual=slgC, seAnnual=slgE;
+  const ndr = 1 - (scAnnual||0)/100 + (seAnnual||0)/100;
 
+  for(let m=1;m<=horizon;m++){
     const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
 
-    // Add one-off ARR deals into the opening base (they then follow base NDR annually)
+    // Add one-off ARR deals into the opening base
     if(useRevenue&&useEvents) for(const d of deals){
       if(m===d.startMonth&&!d.applied){slgOpenArr+=d.arrAdded;d.applied=true;}
     }
 
-    // ── SLG annual NDR step on opening base (months 12,24,36...) ──
+    // ── SLG annual NDR step on opening base (months 13,25,37...) ──
     if(useRevenue && m>1 && (m-1)%12===0){
       slgOpenArr *= ndr;
     }
@@ -436,8 +416,8 @@ function simulate(cfg, horizon){
     if(useRevenue) for(const c of cohorts){
       const age = m - c.bookMonth;
       if(age>0 && age%12===0){
-        c.arr *= ndr;                 // renew at NDR
-        slgCashThisMonth += c.arr;    // re-collect full annual value upfront
+        c.arr *= ndr;
+        slgCashThisMonth += c.arr;
       }
     }
 
@@ -449,13 +429,12 @@ function simulate(cfg, horizon){
     if(useRevenue) slgCashThisMonth += slgOpenArr/12;
 
     // ── Book new SLG this month (monthly rate on current total SLG ARR) ──
-    // Current total SLG ARR = opening base + sum of cohort ARRs
     let cohortArrSum=0; for(const c of cohorts) cohortArrSum+=c.arr;
     const currentSlgArr = slgOpenArr + cohortArrSum;
     if(useRevenue && sg>0){
-      const newBooking = currentSlgArr * (sg/100); // annual ARR booked this month
+      const newBooking = currentSlgArr * (sg/100);
       cohorts.push({arr:newBooking, bookMonth:m});
-      pendingBookingCash += newBooking;            // cash collected next month
+      pendingBookingCash += newBooking;
     }
 
     // PLG revenue (monthly billing)
@@ -509,14 +488,13 @@ function simulate(cfg, horizon){
 function makeCfg(id){
   const sc=S.sc[id];
   return{startCash:S.cash, startPlgMrr:S.plgArr/12, startSlgMrr:S.slgArr/12, startBurn:S.burn,
-         plgG:sc.plgG, plgG2:sc.plgG2, plgC:sc.plgC, plgC2:sc.plgC2,
-         slgG:sc.slgG, slgG2:sc.slgG2, slgC:sc.slgC, slgC2:sc.slgC2, slgE:sc.slgE, slgE2:sc.slgE2,
+         plgG:sc.plgG, plgC:sc.plgC,
+         slgG:sc.slgG, slgC:sc.slgC, slgE:sc.slgE,
          expGrowth:sc.expGrowth, fundAmt:S.fundAmt, fundMo:S.fundMo,
          events:S.events, arrEvents:S.arrEvents,
          useRevenue:sc.useRevenue,
          useEvents: id==='S0' ? false : (S.adjScenarios[id]||false),
-         useFunding: id==='S0' ? false : (S.fundScenarios[id]||false),
-         phase2Start:getPhase2Rel()};
+         useFunding: id==='S0' ? false : (S.fundScenarios[id]||false)};
 }
 function runSc(id,horizon){return simulate(makeCfg(id),horizon||HORIZON);}
 function trueRunway(id){
@@ -619,13 +597,18 @@ function buildExec(){
   const aiRev=S.events.find(e=>e.type==='income'&&e.recurring);
   if(aiRev){
     if((aiRev.amount||0)>0){
-      const wo=simulate({...makeCfg('S2'),events:S.events.filter(x=>x.id!==aiRev.id)},60).runway;
-      const daysAdded=Math.round((s2rw-wo)*30.4375);
+      // Use an extended horizon so the impact surfaces even when S2 survives 36/60 months.
+      const EXT=180;
+      const withAi=simulate(makeCfg('S2'),EXT).runway;
+      const woAi=simulate({...makeCfg('S2'),events:S.events.filter(x=>x.id!==aiRev.id)},EXT).runway;
+      const daysAdded=Math.round((withAi-woAi)*30.4375);
       const g=aiRev.growthPct||0;
-      // 12-month cumulative cash with growth
       let twelveMoCash=0; for(let k=0;k<12;k++) twelveMoCash+=aiRev.amount*Math.pow(1+g/100,k);
       const gTxt=g>0?` growing <span class="na">${g}%/mo</span>`:'';
-      lines.push(`• <span class="np">${aiRev.label}</span> at <span class="ng">${fs$(aiRev.amount)}/mo</span>${gTxt} (<span class="ng">${fs$(twelveMoCash)}</span> over 12 mo) adds <span class="ng">~${Math.abs(daysAdded)} days</span> of runway (S2).`);
+      const impactTxt = (withAi>=EXT && woAi>=EXT)
+        ? `S2 already survives the modelled horizon either way`
+        : `adds <span class="ng">~${Math.abs(daysAdded)} days</span> of runway (S2)`;
+      lines.push(`• <span class="np">${aiRev.label}</span> at <span class="ng">${fs$(aiRev.amount)}/mo</span>${gTxt} (<span class="ng">${fs$(twelveMoCash)}</span> over 12 mo) — ${impactTxt}.`);
     } else {
       lines.push(`• <span class="np">${aiRev.label}</span>: enter an amount in the adjustments to see its runway impact.`);
     }
@@ -755,12 +738,13 @@ function renderScRows(){
     const sc=S.sc[id], meta=SC_META[id];
     const disabled=opts.disabled;
     const emptyCell=`<div></div>`;
+    const disStep=(v)=>`<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(v)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`;
     const plgCells=disabled
-      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>${emptyCell}`
+      ? `${disStep(sc.plgG)}${disStep(sc.plgC)}${emptyCell}`
       : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgC',1)}</div>${emptyCell}`;
-    const slgCells=disabled
-      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgE)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`
-      : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgC',1)}</div><div>${inpE(id,'slgE',1)}</div>`;
+    // SLG: growth editable on S2/S3; churn & expansion ALWAYS display-only (greyed)
+    const slgGrowthCell = disabled ? disStep(sc.slgG) : `<div>${inpE(id,'slgG',1)}</div>`;
+    const slgCells = `${slgGrowthCell}${disStep(sc.slgC)}${disStep(sc.slgE)}`;
     const nameHtml=meta.isPlan?`${meta.name}<span class="plan-badge">plan</span>`:meta.name;
     const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
     const borderTop=opts.borderTop?'border-top:.5px solid var(--border);':'';
