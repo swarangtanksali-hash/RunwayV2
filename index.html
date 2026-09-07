@@ -65,17 +65,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
-.stbl-hd{display:grid;grid-template-columns:120px 84px 42px 64px 64px 40px 40px 84px 84px;padding:6px 10px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:5px}
-.th{font-family:var(--mono);font-size:9px;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:center}
-.th.left{justify-content:flex-start}
+.stbl-hd{display:grid;grid-template-columns:112px 78px 40px 52px 52px 52px 34px 34px 78px 78px;padding:6px 9px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:4px}
+.th{font-family:var(--mono);font-size:8px;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1}
+.th.left{justify-content:flex-start;text-align:left}
 .th.blu{color:var(--bs)}.th.red{color:var(--rs)}
-.grid6{display:grid;grid-template-columns:120px 84px 42px 64px 64px 40px 40px 84px 84px;gap:5px;padding:0 10px;align-items:center}
+.grid6{display:grid;grid-template-columns:112px 78px 40px 52px 52px 52px 34px 34px 78px 78px;gap:4px;padding:0 9px;align-items:center}
 
-.sc-2row{display:grid;grid-template-columns:120px 84px calc(42px + 64px + 64px + 10px) 40px 40px 84px 84px;gap:0 5px;padding:8px 10px;border-bottom:.5px solid var(--border)}
+.sc-2row{display:grid;grid-template-columns:112px 78px calc(40px + 52px + 52px + 52px + 12px) 34px 34px 78px 78px;gap:0 4px;padding:8px 9px;border-bottom:.5px solid var(--border)}
 .sc-2row-left{align-self:center}
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
-.sc-rate-row{display:grid;grid-template-columns:42px 64px 64px;gap:5px;align-items:center}
+.sc-rate-row{display:grid;grid-template-columns:40px 52px 52px 52px;gap:4px;align-items:center}
 .sc-2row-chk{align-self:center;display:flex;align-items:center;justify-content:center}
 .sc-chk{width:14px;height:14px;cursor:pointer;margin:0}
 .sc-chk:disabled{opacity:0.25;cursor:not-allowed}
@@ -107,10 +107,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 .sc-inp-wrap{display:flex;flex-direction:column;gap:2px}
 .sc-inp-row{display:flex;align-items:center;gap:2px}
-.sc-inp{flex:1;min-width:0;padding:4px 4px;background:var(--bg4);border:.5px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--mono);font-size:11px;text-align:right;outline:none;transition:border-color .15s}
+.sc-inp{flex:1;min-width:0;padding:4px 2px;background:var(--bg4);border:.5px solid var(--border);border-radius:3px;color:var(--text);font-family:var(--mono);font-size:10px;text-align:right;outline:none;transition:border-color .15s}
 .sc-inp:focus{border-color:var(--blu)}
 .sc-inp:disabled{opacity:.55;cursor:not-allowed;background:var(--bg3)}
-.sc-step{width:18px;height:22px;background:var(--bg3);border:.5px solid var(--border);color:var(--dim);font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none}
+.sc-step{width:15px;height:22px;background:var(--bg3);border:.5px solid var(--border);color:var(--dim);font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none}
 .sc-step:hover{background:var(--bg4);color:var(--text)}
 .sc-step:active{background:var(--blu);color:#fff}
 .sc-step.up{border-radius:0 3px 3px 0}
@@ -217,8 +217,9 @@ canvas{display:block}
       <div class="th left">Scenario</div>
       <div class="th left">Runway</div>
       <div class="th left">Motion</div>
-      <div class="th blu left">New ARR % /mo</div>
-      <div class="th red left">Churn % /mo</div>
+      <div class="th blu">New %<br>/mo</div>
+      <div class="th red">Churn %<br>*/yr SLG</div>
+      <div class="th" style="color:var(--gs)">Exp %<br>/yr SLG</div>
       <div class="th" style="color:var(--bs)">Adj</div>
       <div class="th" style="color:var(--gs)">Fund</div>
       <div class="th" id="ms-hd-1" style="color:var(--as)">Dec '26</div>
@@ -228,10 +229,11 @@ canvas{display:block}
     <div id="srows"></div>
 
     <div style="padding:5px 12px;background:var(--bg3);border-top:.5px solid var(--border);font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5">
-      <span style="color:var(--bs)">New ARR %</span> = Gross new ARR added as % of opening base each month &nbsp;·&nbsp;
-      <span style="color:var(--rs)">Churn %</span> = Gross ARR lost as % of opening base &nbsp;·&nbsp;
-      Net = New − Churn &nbsp;·&nbsp;
-      <span style="color:var(--cyans)">PLG</span> $99K · <span style="color:var(--pur)">SLG</span> $214K starting ARR
+      <span style="color:var(--bs)">New %/mo</span> = gross new ARR booked each month &nbsp;·&nbsp;
+      <span style="color:var(--rs)">Churn</span> &amp; <span style="color:var(--gs)">Exp</span>: PLG monthly, <span style="color:var(--pur)">SLG annual (at renewal)</span> &nbsp;·&nbsp;
+      SLG NDR = 100 − churn + exp &nbsp;·&nbsp;
+      <span style="color:var(--cyans)">PLG</span> $99K · <span style="color:var(--pur)">SLG</span> $214K start &nbsp;·&nbsp;
+      <span style="color:var(--as)">* SLG churn is a /yr figure</span>
     </div>
 
     <div style="padding:8px 12px;background:var(--bg2);border-top:.5px solid var(--border)">
@@ -291,6 +293,20 @@ canvas{display:block}
 
 </div>
 
+<div style="max-width:100%;margin-top:14px;background:var(--bg2);border:.5px solid var(--border);border-radius:6px;padding:14px 18px;box-shadow:var(--shadow)">
+  <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:.5px solid var(--border)">Methodology &amp; Modelling Notes</div>
+  <div style="font-size:11px;line-height:1.75;color:#aab3c5;font-family:var(--sans)">
+    <p style="margin-bottom:8px"><strong style="color:var(--cyans);font-family:var(--mono)">PLG</strong> is modelled as a monthly-billed motion. Growth and churn are applied every month to the PLG ARR base: each month the base moves by <em>(New %/mo − Churn %/mo)</em>. Cash is collected evenly, one-twelfth of ARR per month.</p>
+    <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">SLG</strong> is modelled on annual-upfront billing, and its growth, churn and expansion run on different clocks:</p>
+    <p style="margin-bottom:4px;padding-left:14px">• <strong>New bookings — monthly.</strong> Each month new SLG ARR is booked equal to <em>New %/mo × current SLG ARR</em>. That annual contract value is collected as cash <strong>one month later</strong> (30-day billing lag), upfront for the full year.</p>
+    <p style="margin-bottom:4px;padding-left:14px">• <strong>Churn &amp; Expansion — annual, at renewal.</strong> Each booked cohort renews every 12 months at <em>value × NDR</em>, where <strong>NDR = 100% − SLG churn %/yr + SLG expansion %/yr</strong> (e.g. −5% churn +10% expansion → 105% net revenue retention). The renewed annual value is re-collected upfront in the renewal month.</p>
+    <p style="margin-bottom:8px;padding-left:14px">• <strong>Opening SLG base ($214K)</strong> is treated as a flat monthly run-rate (base ÷ 12 collected each month) for simplicity — it is not cohort-tracked. Once per year the NDR step is applied to the base so it gently rises or falls annually rather than dropping off a cliff.</p>
+    <p style="margin-bottom:8px">Because SLG cash is collected upfront on bookings and renewals, the <strong>Cash Runway</strong> line is lumpier than a smoothed run-rate model and generally shows more cash during growth phases — this reflects real annual-contract billing. The <strong>ARR chart</strong> remains a smoother measure of contracted run-rate. The two are intentionally decoupled.</p>
+    <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong>: <em>Expense</em> and <em>Savings</em> affect cash only. <em>One-time ARR</em> (e.g. a named deal) is added to the SLG base and follows the annual NDR thereafter. <em>Recurring income</em> (e.g. AI Revenues) is decoupled from PLG/SLG — it adds monthly cash (optionally growing at a monthly rate) and shows on the ARR chart as the current monthly amount × 12; it persists at its last value after its window ends.</p>
+    <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cumulative cash reaches zero. Milestone columns (Dec '26 / Mar '27) and the ARR chart totals show PLG + SLG + recurring-income ARR. Phase-2 rate assumptions apply from Jan '28 onward where set. All figures are model estimates for planning, not forecasts.</p>
+  </div>
+</div>
+
 <script>
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
 const HORIZON = 36; // fixed 36-month horizon from start month
@@ -324,10 +340,10 @@ const S = {
     {id:3, label:'NELSON', amount:50000, month:1},
   ],
   sc: {
-    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,  slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false },
-    S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
-    S2: { plgG:30, plgG2:30, plgC:17, plgC2:17, slgG:15, slgG2:15, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
-    S3: { plgG:30, plgG2:30, plgC:15, plgC2:15, slgG:20, slgG2:20, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
+    S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,  slgC2:0,  slgE:0,  slgE2:0,  expGrowth:0, useRevenue:false, useEvents:false },
+    S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:5,  slgC2:5,  slgE:10, slgE2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S2: { plgG:30, plgG2:30, plgC:17, plgC2:17, slgG:15, slgG2:15, slgC:5,  slgC2:5,  slgE:10, slgE2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
+    S3: { plgG:30, plgG2:30, plgC:15, plgC2:15, slgG:20, slgG2:20, slgC:5,  slgC2:5,  slgE:10, slgE2:10, expGrowth:0, useRevenue:true,  useEvents:true  },
   }
 };
 let nextId = 4;
@@ -363,38 +379,89 @@ function fPct(v){return v.toFixed(1)+'%'}
 function fAnn(m){return((1-Math.pow(1-m/100,12))*100).toFixed(1)+'%'}
 
 // ── SIMULATE ──────────────────────────────────────────────────────────────
+// SLG billing model:
+//  • Opening base: flat monthly cash run-rate (base/12). NDR (1 − churn + expansion)
+//    applied once per year (months 12,24,36) as a step to the base → gentle annual change.
+//  • New bookings: each month new SLG ARR = current SLG ARR × slgGrowth%/mo (monthly booking rate).
+//    Booked annual ARR is collected as CASH one month later (upfront). Cohort renews every 12
+//    months at value × NDR, re-collecting the (new) annual value upfront and stepping ARR.
+//  • PLG: unchanged monthly engine (monthly billing, monthly growth, monthly churn).
+//  NDR = 1 − slgChurn%/yr + slgExp%/yr.
 function simulate(cfg, horizon){
   horizon = horizon || HORIZON;
   const {startCash, startPlgMrr, startSlgMrr, startBurn,
-         plgG, plgG2, plgC, plgC2, slgG, slgG2, slgC, slgC2,
+         plgG, plgG2, plgC, plgC2, slgG, slgG2, slgC, slgC2, slgE, slgE2,
          expGrowth, fundAmt, fundMo, events, arrEvents,
          useRevenue, useEvents, useFunding, phase2Start} = cfg;
 
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
-  let cash=startCash, plgMrr=startPlgMrr, slgMrr=startSlgMrr, runout=null;
+  let cash=startCash, plgMrr=startPlgMrr, runout=null;
 
-  // One-off ARR events: added to SLG MRR base at their month and compound forward
+  // SLG opening base (annual ARR value), stepped by NDR annually
+  let slgOpenArr = startSlgMrr*12;
+
+  // SLG new-booking cohorts: {arr: current annual value, bookMonth}
+  // Renewal at bookMonth+12, +24 ... value ×= NDR at each renewal.
+  const cohorts=[];
+  // Pending cash to collect next month (upfront annual bookings collected 1mo later)
+  let pendingBookingCash=0;
+
+  // One-off ARR events (NELSON-style): add to SLG base ARR at their month, then behave like base
   const deals=(useRevenue&&useEvents&&arrEvents&&arrEvents.length)
-    ? arrEvents.map(e=>({mrrAdded:(e.amount||0)/12, startMonth:e.month, applied:false}))
+    ? arrEvents.map(e=>({arrAdded:(e.amount||0), startMonth:e.month, applied:false}))
     : [];
 
   for(let m=1;m<=horizon;m++){
     const pg=(m>=phase2Start)?plgG2:plgG;
     const pc=(m>=phase2Start)?plgC2:plgC;
     const sg=(m>=phase2Start)?slgG2:slgG;
-    const sc=(m>=phase2Start)?slgC2:slgC;
+    const scAnnual=(m>=phase2Start)?slgC2:slgC;   // annual churn %
+    const seAnnual=(m>=phase2Start)?slgE2:slgE;   // annual expansion %
+    const ndr = 1 - (scAnnual||0)/100 + (seAnnual||0)/100;
 
     const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
 
-    // Apply one-off ARR deals: add to SLG MRR base at their start month (compounds from then)
+    // Add one-off ARR deals into the opening base (they then follow base NDR annually)
     if(useRevenue&&useEvents) for(const d of deals){
-      if(m===d.startMonth&&!d.applied){slgMrr+=d.mrrAdded;d.applied=true;}
+      if(m===d.startMonth&&!d.applied){slgOpenArr+=d.arrAdded;d.applied=true;}
     }
 
-    // Events: expense (cash −), savings (cash +), income (cash + monthly)
-    // Recurring income = decoupled ARR: monthly cash + flat (amt×12) to ARR.
-    // If growthPct set, the monthly amount compounds each active month.
-    // ARR = current month's grown amount × 12. Persists at last value after window.
+    // ── SLG annual NDR step on opening base (months 12,24,36...) ──
+    if(useRevenue && m>1 && (m-1)%12===0){
+      slgOpenArr *= ndr;
+    }
+
+    // ── SLG cohort renewals this month (renew at ×NDR, collect upfront cash) ──
+    let slgCashThisMonth = 0;
+    if(useRevenue) for(const c of cohorts){
+      const age = m - c.bookMonth;
+      if(age>0 && age%12===0){
+        c.arr *= ndr;                 // renew at NDR
+        slgCashThisMonth += c.arr;    // re-collect full annual value upfront
+      }
+    }
+
+    // ── Collect last month's new bookings (upfront, 1-month lag) ──
+    slgCashThisMonth += pendingBookingCash;
+    pendingBookingCash = 0;
+
+    // ── Opening base monthly cash (smooth run-rate) ──
+    if(useRevenue) slgCashThisMonth += slgOpenArr/12;
+
+    // ── Book new SLG this month (monthly rate on current total SLG ARR) ──
+    // Current total SLG ARR = opening base + sum of cohort ARRs
+    let cohortArrSum=0; for(const c of cohorts) cohortArrSum+=c.arr;
+    const currentSlgArr = slgOpenArr + cohortArrSum;
+    if(useRevenue && sg>0){
+      const newBooking = currentSlgArr * (sg/100); // annual ARR booked this month
+      cohorts.push({arr:newBooking, bookMonth:m});
+      pendingBookingCash += newBooking;            // cash collected next month
+    }
+
+    // PLG revenue (monthly billing)
+    const plgRev = useRevenue ? plgMrr : 0;
+
+    // ── Cash-affecting adjustments (expense / savings / recurring income) ──
     let evD=0, flatArr=0;
     if(useEvents&&events) for(const e of events){
       const end=e.monthEnd||e.month;
@@ -407,29 +474,33 @@ function simulate(cfg, horizon){
         if(active) evD+=amt;
       } else if(e.type==='income'){
         const g=(e.growthPct||0)/100;
-        // Months elapsed since start (0 at start month). After window end, freeze at last active month's value.
         const monthsElapsed = started ? Math.min(m, end) - e.month : 0;
         const grownAmt = amt * Math.pow(1+g, Math.max(monthsElapsed,0));
-        if(active) evD += grownAmt;          // monthly cash at grown rate
-        if(started) flatArr += grownAmt*12;  // ARR = grown monthly × 12, persists after window
+        if(active) evD += grownAmt;
+        if(started) flatArr += grownAmt*12;
       }
     }
     const fd=(useFunding&&fundAmt>0&&m===fundMo)?fundAmt:0;
 
-    const rev=useRevenue?(plgMrr+slgMrr):0;
+    const rev = plgRev + slgCashThisMonth;
     const prev=cash;
     cash=cash-burn+rev+evD+fd;
     cashArr.push(Math.max(cash,0));
 
     if(runout===null&&cash<=0){const fr=prev/(prev-cash);runout=(m-1)+fr;}
 
+    // Grow PLG (monthly)
     if(useRevenue){
       plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
-      slgMrr=Math.max(slgMrr+slgMrr*(sg/100)-slgMrr*(sc/100),0);
     }
+
+    // Recompute SLG total ARR after this month's booking (for the ARR series)
+    let cohortSum2=0; for(const c of cohorts) cohortSum2+=c.arr;
+    const slgTotalArr = slgOpenArr + cohortSum2;
+
     plgSeries.push(plgMrr*12);
-    slgSeries.push(slgMrr*12);
-    dealArrSeries.push(flatArr); // flat decoupled ARR from recurring income
+    slgSeries.push(slgTotalArr);       // SLG ARR (annual) = base + cohorts
+    dealArrSeries.push(flatArr);       // decoupled AI Revenues ARR
   }
   return{arr:cashArr, plgArr:plgSeries, slgArr:slgSeries, dealArr:dealArrSeries,
          runway:runout!==null?runout:(cash>0?horizon:0), finalCash:cashArr[horizon]};
@@ -439,7 +510,7 @@ function makeCfg(id){
   const sc=S.sc[id];
   return{startCash:S.cash, startPlgMrr:S.plgArr/12, startSlgMrr:S.slgArr/12, startBurn:S.burn,
          plgG:sc.plgG, plgG2:sc.plgG2, plgC:sc.plgC, plgC2:sc.plgC2,
-         slgG:sc.slgG, slgG2:sc.slgG2, slgC:sc.slgC, slgC2:sc.slgC2,
+         slgG:sc.slgG, slgG2:sc.slgG2, slgC:sc.slgC, slgC2:sc.slgC2, slgE:sc.slgE, slgE2:sc.slgE2,
          expGrowth:sc.expGrowth, fundAmt:S.fundAmt, fundMo:S.fundMo,
          events:S.events, arrEvents:S.arrEvents,
          useRevenue:sc.useRevenue,
@@ -470,69 +541,24 @@ function arrAtMonth(id, absMonth){
 // ── EXEC SUMMARY ──────────────────────────────────────────────────────────
 function breakevenCrossMonth(id){
   const sc=S.sc[id]; if(!sc.useRevenue)return null;
-  const p2=getPhase2Rel();
-  let plgMrr=S.plgArr/12, slgMrr=S.slgArr/12;
-  const deals=S.arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12}));
+  const r=runSc(id,HORIZON);
   for(let m=1;m<=HORIZON;m++){
-    const pg=(m>=p2)?sc.plgG2:sc.plgG, pc=(m>=p2)?sc.plgC2:sc.plgC;
-    const sg=(m>=p2)?sc.slgG2:sc.slgG, scc=(m>=p2)?sc.slgC2:sc.slgC;
     const burn=S.burn*Math.pow(1+(sc.expGrowth||0)/100,m-1);
-    let dealMrr=0; for(const d of deals) if(m>=d.startMonth) dealMrr+=d.mrrContrib;
-    if(plgMrr+slgMrr+dealMrr>=burn)return m;
-    plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
-    slgMrr=Math.max(slgMrr+slgMrr*(sg/100)-slgMrr*(scc/100),0);
-    for(const d of deals) if(m===d.renewalMonth){d.mrrContrib*=(1-scc/100);d.renewalMonth+=12;}
+    // Monthly revenue run-rate = total ARR / 12 (smooth proxy, independent of billing lumpiness)
+    const arrTotal=(r.plgArr[m]||0)+(r.slgArr[m]||0)+((r.dealArr&&r.dealArr[m])||0);
+    if(arrTotal/12>=burn)return m;
   }
   return null;
 }
 
 function arrCrossMonth(id,target){
   const sc=S.sc[id]; if(!sc.useRevenue)return null;
-  const p2=getPhase2Rel();
-  let plgMrr=S.plgArr/12, slgMrr=S.slgArr/12;
-  const deals=S.arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12}));
+  const r=simulate(makeCfg(id),60);
   for(let m=1;m<=60;m++){
-    const pg=(m>=p2)?sc.plgG2:sc.plgG, pc=(m>=p2)?sc.plgC2:sc.plgC;
-    const sg=(m>=p2)?sc.slgG2:sc.slgG, scc=(m>=p2)?sc.slgC2:sc.slgC;
-    let dealMrr=0; for(const d of deals) if(m>=d.startMonth) dealMrr+=d.mrrContrib;
-    if((plgMrr+slgMrr+dealMrr)*12>=target)return m;
-    plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
-    slgMrr=Math.max(slgMrr+slgMrr*(sg/100)-slgMrr*(scc/100),0);
-    for(const d of deals) if(m===d.renewalMonth){d.mrrContrib*=(1-scc/100);d.renewalMonth+=12;}
+    const arrTotal=(r.plgArr[m]||0)+(r.slgArr[m]||0)+((r.dealArr&&r.dealArr[m])||0);
+    if(arrTotal>=target)return m;
   }
   return null;
-}
-
-// ── PEAK DEFICIT ──────────────────────────────────────────────────────────
-function peakDeficit(id){
-  // Runs simulation without clamping cash at 0, finds minimum cash and the month it occurs
-  const cfg=makeCfg(id);
-  const {startCash,startPlgMrr,startSlgMrr,startBurn,
-         plgG,plgG2,plgC,plgC2,slgG,slgG2,slgC,slgC2,
-         expGrowth,fundAmt,fundMo,events,arrEvents,
-         useRevenue,useEvents,useFunding,phase2Start}=cfg;
-  let cash=startCash,plgMrr=startPlgMrr,slgMrr=startSlgMrr;
-  let minCash=startCash,minMonth=0;
-  const deals=(useRevenue&&arrEvents&&arrEvents.length)
-    ?arrEvents.map(e=>({mrrContrib:e.amount/12,startMonth:e.month,renewalMonth:e.month+12})):[];
-  for(let m=1;m<=HORIZON;m++){
-    const pg=(m>=phase2Start)?plgG2:plgG,pc=(m>=phase2Start)?plgC2:plgC;
-    const sg=(m>=phase2Start)?slgG2:slgG,sc=(m>=phase2Start)?slgC2:slgC;
-    const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
-    let evD=0;
-    if(useEvents&&events)for(const e of events){const end=e.monthEnd||e.month;if(m>=e.month&&m<=end)evD+=(e.type==='income'||e.type==='savings'?1:-1)*e.amount;}
-    const fd=(useFunding&&fundAmt>0&&m===fundMo)?fundAmt:0;
-    let dealMrr=0;if(useRevenue)for(const d of deals)if(m>=d.startMonth)dealMrr+=d.mrrContrib;
-    const rev=useRevenue?(plgMrr+slgMrr+dealMrr):0;
-    cash=cash-burn+rev+evD+fd; // no clamp
-    if(cash<minCash){minCash=cash;minMonth=m;}
-    if(useRevenue){
-      plgMrr=Math.max(plgMrr+plgMrr*(pg/100)-plgMrr*(pc/100),0);
-      slgMrr=Math.max(slgMrr+slgMrr*(sg/100)-slgMrr*(sc/100),0);
-      for(const d of deals)if(m===d.renewalMonth){d.mrrContrib*=(1-sc/100);d.renewalMonth+=12;}
-    }
-  }
-  return{amount:minCash,month:minMonth};
 }
 
 function buildExec(){
@@ -623,8 +649,9 @@ function updateKPIs(){
   document.getElementById('slg-mrr-hint').textContent='MRR='+f$(S.slgArr/12);
   document.getElementById('kpi-plgch').textContent=fPct(S.sc.S2.plgC)+'/mo';
   document.getElementById('kpi-plgch-ann').textContent='ann. ≈'+fAnn(S.sc.S2.plgC);
-  document.getElementById('kpi-slgch').textContent=fPct(S.sc.S2.slgC)+'/mo';
-  document.getElementById('kpi-slgch-ann').textContent='ann. ≈'+fAnn(S.sc.S2.slgC);
+  document.getElementById('kpi-slgch').textContent=fPct(S.sc.S2.slgC)+'/yr';
+  const ndr=100-(S.sc.S2.slgC||0)+(S.sc.S2.slgE||0);
+  document.getElementById('kpi-slgch-ann').textContent='NDR '+ndr.toFixed(0)+'%';
   // Update header subtitle
   const endLbl=moLbl(HORIZON);
   document.getElementById('ph-sub').textContent=`36-month horizon · ${moLbl(1)} → ${endLbl}`;
@@ -717,7 +744,7 @@ function renderScRows(){
   html+=`<div class="grid6 srow" style="opacity:0.65">
     <div><div class="sn-name" style="color:var(--muted)">S0 Burn Only</div><div class="sn-desc">Pure burn. No revenue.</div></div>
     <div>${rwCell('S0')}</div>
-    <div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div>
     <div class="sc-2row-chk"><input type="checkbox" class="sc-chk" disabled></div>
     <div class="sc-2row-chk"><input type="checkbox" class="sc-chk" disabled></div>
     <div class="sc-2row-ms" style="color:var(--muted);opacity:.4">—</div>
@@ -727,12 +754,13 @@ function renderScRows(){
   function scBlock(id, opts){
     const sc=S.sc[id], meta=SC_META[id];
     const disabled=opts.disabled;
+    const emptyCell=`<div></div>`;
     const plgCells=disabled
-      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`
-      : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgC',1)}</div>`;
+      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.plgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>${emptyCell}`
+      : `<div>${inpE(id,'plgG',1)}</div><div>${inpE(id,'plgC',1)}</div>${emptyCell}`;
     const slgCells=disabled
-      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`
-      : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgC',1)}</div>`;
+      ? `<div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgG)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgC)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div><div><div class="sc-inp-row"><button class="sc-step dn" disabled style="visibility:hidden">−</button>${inpD(sc.slgE)}<button class="sc-step up" disabled style="visibility:hidden">+</button></div></div>`
+      : `<div>${inpE(id,'slgG',1)}</div><div>${inpE(id,'slgC',1)}</div><div>${inpE(id,'slgE',1)}</div>`;
     const nameHtml=meta.isPlan?`${meta.name}<span class="plan-badge">plan</span>`:meta.name;
     const opacity=opts.opacity?`opacity:${opts.opacity};`:'';
     const borderTop=opts.borderTop?'border-top:.5px solid var(--border);':'';
