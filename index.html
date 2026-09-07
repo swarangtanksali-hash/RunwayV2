@@ -273,7 +273,7 @@ canvas{display:block}
     <canvas id="chart" height="140"></canvas>
   </div>
 
-  <div class="chart-card">
+  <div class="chart-card" style="position:relative">
     <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Total ARR by Scenario</div>
     <div class="c-leg">
       <div class="c-li"><div class="c-line" style="background:#f97316"></div>S1</div>
@@ -281,7 +281,7 @@ canvas{display:block}
       <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
     </div>
     <canvas id="arr-chart" height="140"></canvas>
-    <div id="arr-milestones"></div>
+    <div id="arr-milestones" style="position:absolute;top:44px;left:52px;z-index:5;pointer-events:none"></div>
   </div>
 </div>
 
@@ -312,8 +312,13 @@ const S = {
   startMonthOffset: 5,
   fundScenarios: {S1:false, S2:false, S3:false},
   adjScenarios:  {S1:true,  S2:true,  S3:true},
-  events: [],
-  arrEvents: [],
+  events: [
+    {id:1, label:'Marketing Burst', type:'expense', amount:null, month:2, monthEnd:2, recurring:false},
+    {id:2, label:'AI Revenues', type:'income', amount:null, month:2, monthEnd:HORIZON, recurring:true},
+  ],
+  arrEvents: [
+    {id:3, label:'NELSON', amount:50000, month:1},
+  ],
   sc: {
     S0: { plgG:0,  plgG2:0,  plgC:0,  plgC2:0,  slgG:0,  slgG2:0,  slgC:0,  slgC2:0,  expGrowth:0, useRevenue:false, useEvents:false },
     S1: { plgG:24, plgG2:24, plgC:19, plgC2:19, slgG:10, slgG2:10, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
@@ -321,7 +326,7 @@ const S = {
     S3: { plgG:30, plgG2:30, plgC:15, plgC2:15, slgG:20, slgG2:20, slgC:5,  slgC2:5,  expGrowth:0, useRevenue:true,  useEvents:true  },
   }
 };
-let nextId = 1;
+let nextId = 4;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -364,10 +369,9 @@ function simulate(cfg, horizon){
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
   let cash=startCash, plgMrr=startPlgMrr, slgMrr=startSlgMrr, runout=null;
 
-  // One-off ARR events: added to MRR base at their month and compound forward
-  // Each deal also contributes to cash as recurring revenue from its start month
+  // One-off ARR events: added to SLG MRR base at their month and compound forward
   const deals=(useRevenue&&useEvents&&arrEvents&&arrEvents.length)
-    ? arrEvents.map(e=>({mrrAdded:e.amount/12, startMonth:e.month, applied:false}))
+    ? arrEvents.map(e=>({mrrAdded:(e.amount||0)/12, startMonth:e.month, applied:false}))
     : [];
 
   for(let m=1;m<=horizon;m++){
@@ -383,11 +387,25 @@ function simulate(cfg, horizon){
       if(m===d.startMonth&&!d.applied){slgMrr+=d.mrrAdded;d.applied=true;}
     }
 
-    // Cash-only events (expense, income, savings) — not ARR
-    let evD=0;
+    // Events: expense (cash −), savings (cash +), income (cash + monthly)
+    // Recurring income = decoupled flat ARR: adds monthly cash AND flat (amt×12) to ARR
+    // (no compounding). ARR block persists permanently once started.
+    let evD=0, flatArr=0;
     if(useEvents&&events) for(const e of events){
       const end=e.monthEnd||e.month;
-      if(m>=e.month&&m<=end) evD+=(e.type==='income'||e.type==='savings'?1:-1)*e.amount;
+      const amt=e.amount||0;
+      const active = m>=e.month && m<=end;
+      const started = m>=e.month; // for persistent ARR after window ends
+      if(e.type==='expense'){
+        if(active) evD-=amt;
+      } else if(e.type==='savings'){
+        if(active) evD+=amt;
+      } else if(e.type==='income'){
+        // Monthly cash only during active window
+        if(active) evD+=amt;
+        // Flat ARR block (amt×12) persists from start month onward, no compounding
+        if(started) flatArr+=amt*12;
+      }
     }
     const fd=(useFunding&&fundAmt>0&&m===fundMo)?fundAmt:0;
 
@@ -404,7 +422,7 @@ function simulate(cfg, horizon){
     }
     plgSeries.push(plgMrr*12);
     slgSeries.push(slgMrr*12);
-    dealArrSeries.push(0); // deals now baked into slgMrr, not tracked separately
+    dealArrSeries.push(flatArr); // flat decoupled ARR from recurring income
   }
   return{arr:cashArr, plgArr:plgSeries, slgArr:slgSeries, dealArr:dealArrSeries,
          runway:runout!==null?runout:(cash>0?horizon:0), finalCash:cashArr[horizon]};
@@ -711,7 +729,7 @@ function sharedAdjHTML(){
   let html='';
   html+=S.events.map(e=>{
     const end=e.monthEnd&&e.monthEnd>e.month?e.monthEnd:null;
-    const totalAmt=end?(e.amount*(end-e.month+1)):e.amount;
+    const totalAmt=end?((e.amount||0)*(end-e.month+1)):(e.amount||0);
     const impD=eventImpactDays(e),isExp=e.type==='expense';
     const impTxt=isExp?(impD>0?`−${impD}d runway`:`no impact`):(impD<0?`+${Math.abs(impD)}d runway`:`no impact`);
     const impCls=isExp&&impD>0?'neg':((!isExp&&impD<0)?'pos':'');
@@ -720,10 +738,10 @@ function sharedAdjHTML(){
     const moEndOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${end&&m===end?'selected':''}>${moLbl(m)}</option>`;}).join('');
     return`<div class="ev-tag">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text);flex:1">${e.label}${e.recurring?` <span style="font-size:8px;color:var(--amb)">rec</span>`:''}</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text);flex:1">${e.label}${e.recurring?` <span style="font-size:8px;color:var(--amb)">rec</span>`:''}${(e.type==='income'&&e.recurring)?` <span style="font-size:8px;color:var(--pur)">+ARR</span>`:''}</span>
         <select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateEvMonth(${e.id},+this.value)">${moOpts}</select>
         ${end?`→<select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateEvMonthEnd(${e.id},+this.value)">${moEndOpts}</select>`:''}
-        <input type="number" style="width:72px;background:var(--bg4);border:.5px solid var(--border);color:${isExp?'var(--rs)':'var(--gs)'};font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount}" onchange="updateEvAmt(${e.id},+this.value)">
+        <input type="number" placeholder="enter amount" style="width:96px;background:var(--bg4);border:.5px solid var(--border);color:${isExp?'var(--rs)':'var(--gs)'};font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount!=null?e.amount:''}" onchange="updateEvAmt(${e.id},this.value)">
         <button class="ev-del" onclick="delEv(${e.id})">×</button>
       </div>
       <div class="ev-impact ${impCls}">${impTxt}</div>
@@ -736,7 +754,7 @@ function sharedAdjHTML(){
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <span style="font-family:var(--mono);font-size:10px;color:var(--text);flex:1">${e.label} <span style="font-size:8px;color:var(--pur)">ARR</span></span>
         <select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateArrEvMonth(${e.id},+this.value)">${moOpts}</select>
-        <input type="number" style="width:72px;background:var(--bg4);border:.5px solid var(--border);color:var(--gs);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount}" onchange="updateArrEvAmt(${e.id},+this.value)">
+        <input type="number" placeholder="enter amount" style="width:96px;background:var(--bg4);border:.5px solid var(--border);color:var(--gs);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount!=null?e.amount:''}" onchange="updateArrEvAmt(${e.id},this.value)">
         <button class="ev-del" onclick="delArrEv(${e.id})">×</button>
       </div>
       <div class="ev-impact pos">+${d}d runway</div>
@@ -748,9 +766,9 @@ function sharedAdjHTML(){
 
 function updateEvMonth(id,m){const e=S.events.find(x=>x.id===id);if(e){e.month=m;if(e.monthEnd<m)e.monthEnd=m;}refresh();}
 function updateEvMonthEnd(id,m){const e=S.events.find(x=>x.id===id);if(e){e.monthEnd=Math.max(m,e.month);}refresh();}
-function updateEvAmt(id,v){const e=S.events.find(x=>x.id===id);if(e&&!isNaN(v)&&v>0)e.amount=v;refresh();}
+function updateEvAmt(id,v){const e=S.events.find(x=>x.id===id);if(e){const n=parseFloat(v);e.amount=(isNaN(n)||n<=0)?null:n;}refresh();}
 function updateArrEvMonth(id,m){const e=S.arrEvents.find(x=>x.id===id);if(e)e.month=m;refresh();}
-function updateArrEvAmt(id,v){const e=S.arrEvents.find(x=>x.id===id);if(e&&!isNaN(v)&&v>0)e.amount=v;refresh();}
+function updateArrEvAmt(id,v){const e=S.arrEvents.find(x=>x.id===id);if(e){const n=parseFloat(v);e.amount=(isNaN(n)||n<=0)?null:n;}refresh();}
 
 function setSc(id,key,val){const v=parseFloat(val);if(isNaN(v))return;S.sc[id][key]=v;refresh();}
 function stepSc(id,key,delta){S.sc[id][key]=Math.max(0,Math.round(((S.sc[id][key]||0)+delta)*100)/100);refresh();}
@@ -857,9 +875,9 @@ function updateArrChart(){
   const labels=buildChartLabels().slice(0,cap);
   arrChart.data.labels=labels;
   const s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
-  const s1d=s1.plgArr.map((v,i)=>v+s1.slgArr[i]).slice(0,cap);
-  const s2d=s2.plgArr.map((v,i)=>v+s2.slgArr[i]).slice(0,cap);
-  const s3d=s3.plgArr.map((v,i)=>v+s3.slgArr[i]).slice(0,cap);
+  const s1d=s1.plgArr.map((v,i)=>v+s1.slgArr[i]+(s1.dealArr[i]||0)).slice(0,cap);
+  const s2d=s2.plgArr.map((v,i)=>v+s2.slgArr[i]+(s2.dealArr[i]||0)).slice(0,cap);
+  const s3d=s3.plgArr.map((v,i)=>v+s3.slgArr[i]+(s3.dealArr[i]||0)).slice(0,cap);
   arrChart.data.datasets[0].data=s1d;
   arrChart.data.datasets[1].data=s2d;
   arrChart.data.datasets[2].data=s3d;
@@ -869,17 +887,17 @@ function updateArrChart(){
   const scColors=['#f97316','#3b82f6','#22c55e'];
   const scLbls=['S1','S2','S3'];
   const allD=[s1d,s2d,s3d];
-  let boxHtml='<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">';
+  let boxHtml='<div style="display:flex;gap:6px;flex-wrap:wrap">';
   for(const ms of milestones){
     const idx=ms.abs-S.startMonthOffset; // 0-based into series
     if(idx<0||idx>=cap){continue;}
-    let inner=`<div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.06em;margin-bottom:3px;text-transform:uppercase">${ms.label}</div>`;
+    let inner=`<div style="font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.06em;margin-bottom:2px;text-transform:uppercase">${ms.label}</div>`;
     for(let i=0;i<3;i++){
       const val=allD[i][idx];
       if(val===undefined) continue;
-      inner+=`<div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${scColors[i]}">${scLbls[i]} ${fs$(val)}</div>`;
+      inner+=`<div style="font-family:var(--mono);font-size:9px;font-weight:600;color:${scColors[i]};line-height:1.35">${scLbls[i]} ${fs$(val)}</div>`;
     }
-    boxHtml+=`<div style="background:var(--bg3);border:.5px solid var(--border);border-left:2px solid var(--border);border-radius:4px;padding:5px 8px;min-width:90px">${inner}</div>`;
+    boxHtml+=`<div style="background:rgba(13,17,23,0.82);border:.5px solid var(--border);border-radius:4px;padding:4px 7px;backdrop-filter:blur(2px)">${inner}</div>`;
   }
   boxHtml+='</div>';
   document.getElementById('arr-milestones').innerHTML=boxHtml;
