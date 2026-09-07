@@ -66,7 +66,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .rcol{display:flex;flex-direction:column;gap:8px;min-width:0}
 .stbl{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;overflow:hidden;box-shadow:var(--shadow)}
 .stbl-hd{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;padding:6px 12px;background:var(--bg3);border-bottom:.5px solid var(--border);gap:6px}
-.th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center}
+.th{font-family:var(--mono);font-size:9px;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;display:flex;align-items:center;justify-content:center}
+.th.left{justify-content:flex-start}
 .th.blu{color:var(--bs)}.th.red{color:var(--rs)}
 .grid6{display:grid;grid-template-columns:130px 100px 50px 78px 78px 52px 52px;gap:6px;padding:0 12px;align-items:center}
 
@@ -75,8 +76,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 .sc-2row-rw{align-self:center}
 .sc-2row-rates{display:flex;flex-direction:column;gap:3px}
 .sc-rate-row{display:grid;grid-template-columns:50px 78px 78px;gap:6px;align-items:center}
-.sc-2row-chk{align-self:center;display:flex;align-items:center;justify-content:center;height:100%;padding-top:2px}
-.sc-chk{width:15px;height:15px;cursor:pointer;border-radius:3px;margin:0 auto;display:block}
+.sc-2row-chk{align-self:center;display:flex;align-items:center;justify-content:center}
+.sc-chk{width:15px;height:15px;cursor:pointer;margin:0}
 .sc-chk:disabled{opacity:0.25;cursor:not-allowed}
 
 .srow{padding-top:8px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
@@ -211,13 +212,13 @@ canvas{display:block}
   <div class="rcol">
   <div class="stbl">
     <div class="stbl-hd">
-      <div class="th">Scenario</div>
-      <div class="th">Runway</div>
-      <div class="th">Motion</div>
-      <div class="th blu">New ARR % /mo</div>
-      <div class="th red">Churn % /mo</div>
-      <div class="th" style="color:var(--bs);letter-spacing:.05em">Adj</div>
-      <div class="th" style="color:var(--gs);letter-spacing:.05em">Fund</div>
+      <div class="th left">Scenario</div>
+      <div class="th left">Runway</div>
+      <div class="th left">Motion</div>
+      <div class="th blu left">New ARR % /mo</div>
+      <div class="th red left">Churn % /mo</div>
+      <div class="th" style="color:var(--bs)">Adj</div>
+      <div class="th" style="color:var(--gs)">Fund</div>
     </div>
 
     <div id="srows"></div>
@@ -263,8 +264,8 @@ canvas{display:block}
   <div class="chart-card">
     <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Cash Runway</div>
     <div class="c-leg">
-      <div class="c-li"><div class="c-line" style="border-top:2px dashed #6b7280;background:none;height:0;width:18px;border-radius:0"></div>S0</div>
-      <div class="c-li"><div class="c-line" style="background:var(--red)"></div>S1</div>
+      <div class="c-li"><div class="c-line" style="border-top:2px dashed #ef4444;background:none;height:0;width:18px;border-radius:0"></div>S0</div>
+      <div class="c-li"><div class="c-line" style="background:#f97316"></div>S1</div>
       <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
       <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
     </div>
@@ -275,11 +276,12 @@ canvas{display:block}
   <div class="chart-card">
     <div style="font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Total ARR by Scenario</div>
     <div class="c-leg">
-      <div class="c-li"><div class="c-line" style="background:var(--red)"></div>S1</div>
+      <div class="c-li"><div class="c-line" style="background:#f97316"></div>S1</div>
       <div class="c-li"><div class="c-line" style="background:var(--blu)"></div>S2</div>
       <div class="c-li"><div class="c-line" style="background:var(--grn)"></div>S3</div>
     </div>
     <canvas id="arr-chart" height="140"></canvas>
+    <div id="arr-milestones"></div>
   </div>
 </div>
 
@@ -309,7 +311,7 @@ const S = {
   fundMo:  1,
   startMonthOffset: 5,
   fundScenarios: {S1:false, S2:false, S3:false},
-  adjScenarios:  {S1:false, S2:false, S3:false},
+  adjScenarios:  {S1:true,  S2:true,  S3:true},
   events: [],
   arrEvents: [],
   sc: {
@@ -709,28 +711,46 @@ function sharedAdjHTML(){
   let html='';
   html+=S.events.map(e=>{
     const end=e.monthEnd&&e.monthEnd>e.month?e.monthEnd:null;
-    const moTxt=end?`${moLbl(e.month)}–${moLbl(end)}`:`${moLbl(e.month)}`;
     const totalAmt=end?(e.amount*(end-e.month+1)):e.amount;
     const impD=eventImpactDays(e),isExp=e.type==='expense';
     const impTxt=isExp?(impD>0?`−${impD}d runway`:`no impact`):(impD<0?`+${Math.abs(impD)}d runway`:`no impact`);
     const impCls=isExp&&impD>0?'neg':((!isExp&&impD<0)?'pos':'');
+    // Build month options
+    const moOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${m===e.month?'selected':''}>${moLbl(m)}</option>`;}).join('');
+    const moEndOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${end&&m===end?'selected':''}>${moLbl(m)}</option>`;}).join('');
     return`<div class="ev-tag">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text)">${e.label} · ${moTxt}${e.recurring?` <span style="font-size:8px;color:var(--amb)">rec</span>`:''}</span>
-        <span style="display:flex;align-items:center;gap:3px"><span style="font-family:var(--mono);font-size:9px;${isExp?'color:var(--rs)':'color:var(--gs)'}">${isExp?'−':'+'}${fs$(totalAmt)}</span><button class="ev-del" onclick="delEv(${e.id})">×</button></span>
-      </div><div class="ev-impact ${impCls}">${impTxt}</div></div>`;
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text);flex:1">${e.label}${e.recurring?` <span style="font-size:8px;color:var(--amb)">rec</span>`:''}</span>
+        <select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateEvMonth(${e.id},+this.value)">${moOpts}</select>
+        ${end?`→<select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateEvMonthEnd(${e.id},+this.value)">${moEndOpts}</select>`:''}
+        <input type="number" style="width:72px;background:var(--bg4);border:.5px solid var(--border);color:${isExp?'var(--rs)':'var(--gs)'};font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount}" onchange="updateEvAmt(${e.id},+this.value)">
+        <button class="ev-del" onclick="delEv(${e.id})">×</button>
+      </div>
+      <div class="ev-impact ${impCls}">${impTxt}</div>
+    </div>`;
   }).join('');
   html+=S.arrEvents.map(e=>{
     const d=arrEventImpactDays(e);
+    const moOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${m===e.month?'selected':''}>${moLbl(m)}</option>`;}).join('');
     return`<div class="ev-tag">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
-        <span style="font-family:var(--mono);font-size:10px;color:var(--text)">${e.label} · ${moLbl(e.month)} <span style="font-size:8px;color:var(--pur)">ARR</span></span>
-        <span style="display:flex;align-items:center;gap:3px"><span style="font-family:var(--mono);font-size:9px;color:var(--gs)">+${fs$(e.amount)}</span><button class="ev-del" onclick="delArrEv(${e.id})">×</button></span>
-      </div><div class="ev-impact pos">+${d}d runway</div></div>`;
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-size:10px;color:var(--text);flex:1">${e.label} <span style="font-size:8px;color:var(--pur)">ARR</span></span>
+        <select style="background:var(--bg4);border:.5px solid var(--border);color:var(--text);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none" onchange="updateArrEvMonth(${e.id},+this.value)">${moOpts}</select>
+        <input type="number" style="width:72px;background:var(--bg4);border:.5px solid var(--border);color:var(--gs);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount}" onchange="updateArrEvAmt(${e.id},+this.value)">
+        <button class="ev-del" onclick="delArrEv(${e.id})">×</button>
+      </div>
+      <div class="ev-impact pos">+${d}d runway</div>
+    </div>`;
   }).join('');
   html+=`<button class="add-ev-btn" onclick="openForm()">+ Adj — Exp / ARR / Savings</button>`;
   return html;
 }
+
+function updateEvMonth(id,m){const e=S.events.find(x=>x.id===id);if(e){e.month=m;if(e.monthEnd<m)e.monthEnd=m;}refresh();}
+function updateEvMonthEnd(id,m){const e=S.events.find(x=>x.id===id);if(e){e.monthEnd=Math.max(m,e.month);}refresh();}
+function updateEvAmt(id,v){const e=S.events.find(x=>x.id===id);if(e&&!isNaN(v)&&v>0)e.amount=v;refresh();}
+function updateArrEvMonth(id,m){const e=S.arrEvents.find(x=>x.id===id);if(e)e.month=m;refresh();}
+function updateArrEvAmt(id,v){const e=S.arrEvents.find(x=>x.id===id);if(e&&!isNaN(v)&&v>0)e.amount=v;refresh();}
 
 function setSc(id,key,val){const v=parseFloat(val);if(isNaN(v))return;S.sc[id][key]=v;refresh();}
 function stepSc(id,key,delta){S.sc[id][key]=Math.max(0,Math.round(((S.sc[id][key]||0)+delta)*100)/100);refresh();}
@@ -781,12 +801,12 @@ const chartGridOpts = {
 function initChart(){
   const ctx=document.getElementById('chart').getContext('2d');
   chart=new Chart(ctx,{type:'line',data:{labels:buildChartLabels(),datasets:[
-    {label:'S0',data:[],borderColor:'#6b7280',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
-    {label:'S1',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
+    {label:'S0',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
+    {label:'S1',data:[],borderColor:'#f97316',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
     {label:'S2',data:[],borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.2},
     {label:'S3',data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
-    {label:'S0h',data:[],borderColor:'rgba(107,114,128,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[2,2],pointRadius:0,tension:0.2},
-    {label:'S1h',data:[],borderColor:'rgba(239,68,68,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
+    {label:'S0h',data:[],borderColor:'rgba(239,68,68,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[2,2],pointRadius:0,tension:0.2},
+    {label:'S1h',data:[],borderColor:'rgba(249,115,22,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S2h',data:[],borderColor:'rgba(59,130,246,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
     {label:'S3h',data:[],borderColor:'rgba(34,197,94,0.3)',backgroundColor:'transparent',borderWidth:1,borderDash:[4,4],pointRadius:0,tension:0.2},
   ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
@@ -820,7 +840,7 @@ function updateCashExhaustionBox(){
 function initArrChart(){
   const ctx=document.getElementById('arr-chart').getContext('2d');
   arrChart=new Chart(ctx,{type:'line',data:{labels:buildChartLabels(),datasets:[
-    {label:'S1 Total',data:[],borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
+    {label:'S1 Total',data:[],borderColor:'#f97316',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
     {label:'S2 Total',data:[],borderColor:'#3b82f6',backgroundColor:'transparent',borderWidth:2,pointRadius:0,tension:0.2},
     {label:'S3 Total',data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:0.2},
   ]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
@@ -837,10 +857,39 @@ function updateArrChart(){
   const labels=buildChartLabels().slice(0,cap);
   arrChart.data.labels=labels;
   const s1=runSc('S1',HORIZON),s2=runSc('S2',HORIZON),s3=runSc('S3',HORIZON);
-  arrChart.data.datasets[0].data=s1.plgArr.map((v,i)=>v+s1.slgArr[i]).slice(0,cap);
-  arrChart.data.datasets[1].data=s2.plgArr.map((v,i)=>v+s2.slgArr[i]).slice(0,cap);
-  arrChart.data.datasets[2].data=s3.plgArr.map((v,i)=>v+s3.slgArr[i]).slice(0,cap);
+  const s1d=s1.plgArr.map((v,i)=>v+s1.slgArr[i]).slice(0,cap);
+  const s2d=s2.plgArr.map((v,i)=>v+s2.slgArr[i]).slice(0,cap);
+  const s3d=s3.plgArr.map((v,i)=>v+s3.slgArr[i]).slice(0,cap);
+  arrChart.data.datasets[0].data=s1d;
+  arrChart.data.datasets[1].data=s2d;
+  arrChart.data.datasets[2].data=s3d;
   arrChart.update('none');
+  // Milestone callout boxes: Dec '26 (abs idx 8), Mar '27 (abs idx 11)
+  const milestones=[{label:"Dec '26",abs:8},{label:"Mar '27",abs:11}];
+  const scColors=['#f97316','#3b82f6','#22c55e'];
+  const scLbls=['S1','S2','S3'];
+  const allD=[s1d,s2d,s3d];
+  let boxHtml='<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">';
+  for(const ms of milestones){
+    const idx=ms.abs-S.startMonthOffset; // 0-based into series
+    if(idx<0||idx>=cap){continue;}
+    let inner=`<div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:.06em;margin-bottom:3px;text-transform:uppercase">${ms.label}</div>`;
+    for(let i=0;i<3;i++){
+      const val=allD[i][idx];
+      if(val===undefined) continue;
+      inner+=`<div style="font-family:var(--mono);font-size:10px;font-weight:600;color:${scColors[i]}">${scLbls[i]} ${fs$(val)}</div>`;
+    }
+    boxHtml+=`<div style="background:var(--bg3);border:.5px solid var(--border);border-left:2px solid var(--border);border-radius:4px;padding:5px 8px;min-width:90px">${inner}</div>`;
+  }
+  boxHtml+='</div>';
+  document.getElementById('arr-milestones').innerHTML=boxHtml;
+}
+
+function cashoutMonth(id){const arr=runSc(id,HORIZON).arr;for(let i=1;i<arr.length;i++)if(arr[i]===0)return i;return null;}
+function updateCashExhaustionBox(){
+  const box=document.getElementById('cash-exhaustion-box');
+  const colors={S0:'var(--rs)',S1:'#f97316',S2:'var(--bs)',S3:'var(--gs)'};
+  box.innerHTML='Cash out: '+['S0','S1','S2','S3'].map(id=>{const m=cashoutMonth(id);return`<span style="color:${colors[id]}">${id} ${m?moLbl(m):'survives'}</span>`;}).join(' · ');
 }
 
 // ── REFRESH ────────────────────────────────────────────────────────────────
