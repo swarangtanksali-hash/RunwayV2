@@ -23,8 +23,8 @@
   --sans:'IBM Plex Sans',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:16px 10px 30px;overflow-x:hidden}
-.wrap{max-width:100%;margin:0 auto}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:16px 18px 30px;overflow-x:hidden}
+.wrap{max-width:1600px;margin:0 auto}
 
 .ph{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .ph-ttl{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.05em}
@@ -159,11 +159,6 @@ canvas{display:block}
 <div class="master-layout">
 <div class="lhs">
 
-<div class="exec">
-  <div class="exec-lbl">Executive Summary</div>
-  <div class="exec-body" id="exec-body">Loading…</div>
-</div>
-
 <div class="kpi-strip">
   <div class="kc" style="min-width:120px">
     <div class="kc-lbl">Dashboard Start</div>
@@ -199,14 +194,6 @@ canvas{display:block}
   </div>
 </div>
 
-<div class="kpi-strip" style="margin-top:-4px">
-  <div class="kc"><div class="kc-lbl">S2 Realistic Runway</div><div class="kc-val col-b" id="kpi-rw" style="font-size:13px">—</div><div class="kc-sub" id="kpi-rw-sub">—</div></div>
-  <div class="kc"><div class="kc-lbl">Net Monthly Burn</div><div class="kc-val" id="kpi-nb" style="font-size:13px">—</div></div>
-  <div class="kc"><div class="kc-lbl">Total ARR</div><div class="kc-val col-g" id="kpi-arr" style="font-size:13px">—</div><div class="kc-sub" id="kpi-mrr-sub">—</div></div>
-  <div class="kc"><div class="kc-lbl">S2 PLG Churn</div><div class="kc-val col-r" id="kpi-plgch" style="font-size:13px">—</div><div class="kc-sub" id="kpi-plgch-ann">—</div></div>
-  <div class="kc"><div class="kc-lbl">S2 SLG Churn</div><div class="kc-val col-r" id="kpi-slgch" style="font-size:13px">—</div><div class="kc-sub" id="kpi-slgch-ann">—</div></div>
-</div>
-
 <div class="lhs-inputs-table">
   <div class="lp">
     <div class="sec">SLG Billing <em id="slg-bill-hint" style="font-style:normal;color:var(--muted);font-size:9px">cash timing</em></div>
@@ -218,16 +205,12 @@ canvas{display:block}
     </div>
 
     <div class="hr"></div>
-    <div class="sec">Jacobs 100% Inclusion <em style="font-style:normal;color:var(--muted);font-size:9px">cash only</em></div>
+    <div class="sec">Jacobs Committed Cash</div>
     <div class="ig">
-      <div style="font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5;margin-bottom:5px">
-        Jacobs = <span style="color:var(--pur)">$105K</span> of SLG ARR but only <span style="color:var(--gs)">$14K</span> committed cash. Excluding lifts realism of cash/runway. ARR unaffected.
-      </div>
       <div style="display:flex;gap:0;border:.5px solid var(--border);border-radius:4px;overflow:hidden">
-        <button id="jac-no" onclick="setJacobs(false)" style="flex:1;padding:6px 4px;background:var(--amb);color:#1a1200;border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">No — reduced</button>
-        <button id="jac-yes" onclick="setJacobs(true)" style="flex:1;padding:6px 4px;background:var(--bg3);color:var(--muted);border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Yes — full</button>
+        <button id="jac-no" onclick="setJacobs(false)" style="flex:1;padding:6px 4px;background:var(--amb);color:#1a1200;border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">No</button>
+        <button id="jac-yes" onclick="setJacobs(true)" style="flex:1;padding:6px 4px;background:var(--bg3);color:var(--muted);border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Yes</button>
       </div>
-      <div id="jac-hint" style="font-size:9px;color:var(--gs);font-family:var(--mono);margin-top:5px"></div>
     </div>
 
     <div class="hr"></div>
@@ -322,16 +305,14 @@ canvas{display:block}
 
 <div style="max-width:100%;margin-top:14px;background:var(--bg2);border:.5px solid var(--border);border-radius:6px;padding:14px 18px;box-shadow:var(--shadow)">
   <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:.5px solid var(--border)">Methodology &amp; Modelling Notes</div>
-  <div style="font-size:11px;line-height:1.75;color:#aab3c5;font-family:var(--sans)">
-    <p style="margin-bottom:8px"><strong style="color:var(--as);font-family:var(--mono)">Monthly Gross Burn ($295K)</strong> is total cash operating expenses (~$300K) <strong>net of interest income</strong> (~$5K/mo, a conservative through-cycle average as the cash balance draws down). It does <strong>not</strong> net out any customer/product revenue — all PLG and SLG revenue is added separately by the revenue engine below, so customer revenue is counted exactly once. Interest is netted here because it is not ARR-driven and the revenue engine cannot otherwise capture it. Adjustments (expenses, savings, one-off items) are also separate from this figure.</p>
-    <p style="margin-bottom:8px"><strong style="color:var(--cyans);font-family:var(--mono)">PLG</strong> is modelled as a monthly-billed motion. Growth and churn are applied every month to the PLG ARR base: each month the base moves by <em>(New %/mo − Churn %/mo)</em>. Cash is collected evenly, one-twelfth of ARR per month.</p>
-    <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">SLG</strong> is modelled on annual-upfront billing, and its growth, churn and expansion run on different clocks:</p>
-    <p style="margin-bottom:4px;padding-left:14px">• <strong>New bookings — monthly.</strong> Each month new SLG ARR is booked equal to <em>New %/mo × current SLG ARR</em>. That annual contract value is collected as cash <strong>one month later</strong> (30-day billing lag), upfront for the full year.</p>
-    <p style="margin-bottom:4px;padding-left:14px">• <strong>Churn &amp; Expansion — annual, at renewal.</strong> Each booked cohort renews every 12 months at <em>value × NDR</em>, where <strong>NDR = 100% − SLG churn %/yr + SLG expansion %/yr</strong> (e.g. −5% churn +10% expansion → 105% net revenue retention). The renewed annual value is re-collected upfront in the renewal month.</p>
-    <p style="margin-bottom:8px;padding-left:14px">• <strong>Opening SLG base ($214K)</strong> is <strong>assumed to be collected smoothly over 12 months</strong> (base ÷ 12 each month) rather than upfront at renewal — a deliberate simplification for the existing book. It is not cohort-tracked. Once per year the NDR step is applied to the base so it gently rises or falls annually rather than dropping off a cliff. Note: this smooth treatment applies to the <em>opening</em> base regardless of the billing toggle; the toggle governs how <em>new</em> SLG bookings and their renewals are collected.</p>
-    <p style="margin-bottom:8px">Because SLG cash is collected upfront on bookings and renewals, the <strong>Cash Runway</strong> line is lumpier than a smoothed run-rate model and generally shows more cash during growth phases — this reflects real annual-contract billing. The <strong>ARR chart</strong> remains a smoother measure of contracted run-rate. The two are intentionally decoupled. The <strong>SLG Billing toggle</strong> (left panel) switches SLG cash collection between <em>Upfront annual</em> (bookings and renewals collected as a full year of cash, 1-month lag) and <em>Smooth monthly</em> (the same ARR collected evenly, ⅟₁₂ per month). Upfront is the realistic basis; Smooth is a conservative comparison. The ARR chart is identical under both — only cash timing and runway change.</p>
-    <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong>: <em>Expense</em> and <em>Savings</em> affect cash only. <em>One-time ARR</em> (e.g. a named deal) is added to the SLG base and follows the annual NDR thereafter. <em>Recurring income</em> (e.g. AI Revenues) is decoupled from PLG/SLG — it adds monthly cash (optionally growing at a monthly rate) and shows on the ARR chart as the current monthly amount × 12; it persists at its last value after its window ends.</p>
-    <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cumulative cash reaches zero. Milestone columns (Dec '26 / Mar '27) and the ARR chart totals show PLG + SLG + recurring-income ARR. One rate set per scenario drives the full horizon. All figures are model estimates for planning, not forecasts.</p>
+  <div style="font-size:11px;line-height:1.7;color:#aab3c5;font-family:var(--sans)">
+    <p style="margin-bottom:7px"><strong style="color:var(--as);font-family:var(--mono)">Gross Burn ($295K)</strong> = operating expenses (~$300K) net of interest income (~$5K/mo). Customer revenue is <strong>not</strong> netted here — all PLG/SLG revenue is added separately, so it's counted once.</p>
+    <p style="margin-bottom:7px"><strong style="color:var(--cyans);font-family:var(--mono)">PLG</strong> — monthly-billed. Base moves <em>(New − Churn) %/mo</em>; cash collected ⅟₁₂ of ARR monthly.</p>
+    <p style="margin-bottom:7px"><strong style="color:var(--pur);font-family:var(--mono)">SLG</strong> — annual-upfront billing. New bookings = <em>New %/mo × current SLG ARR</em>, collected upfront one month later. Cohorts renew every 12 months at <strong>NDR = 100 − churn%/yr + expansion%/yr</strong> (e.g. 105%), re-collected upfront. Opening $214K base is collected smoothly (÷12/mo) with the annual NDR step; the billing toggle only governs <em>new</em> bookings/renewals.</p>
+    <p style="margin-bottom:7px"><strong>SLG Billing toggle</strong> — <em>Upfront</em> (realistic, lumpier cash) vs <em>Smooth</em> (conservative, even ⅟₁₂). ARR is identical both ways; only cash timing and runway change.</p>
+    <p style="margin-bottom:7px"><strong style="color:var(--gs);font-family:var(--mono)">Jacobs Committed Cash</strong> — the Jacobs account carries <span style="color:var(--pur)">$105K</span> of SLG ARR but only <span style="color:var(--gs)">$14K</span> of committed cash. <strong>No</strong> (default): cash counts the reduced base = 214K − 105K + 14K = <strong>$123K</strong> → ~$10.25K/mo, stepped at NDR annually. <strong>Yes</strong>: full $214K → ~$17.83K/mo. Affects <em>cash/runway only</em> — ARR is unchanged in both.</p>
+    <p style="margin-bottom:7px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong> — Expense/Savings hit cash only. One-time ARR joins the SLG base (follows NDR). Recurring income (AI Revenues) is decoupled: monthly cash (optionally growing) + ARR shown as monthly × 12, persisting after its window.</p>
+    <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cash hits zero. Milestone columns and ARR totals = PLG + SLG + recurring-income ARR. One rate set per scenario. Model estimates for planning, not forecasts.</p>
   </div>
 </div>
 
@@ -664,21 +645,9 @@ function buildExec(){
 
 // ── KPIs ──────────────────────────────────────────────────────────────────
 function updateKPIs(){
-  const s2rw=trueRunway('S2'),totalArr=S.plgArr+S.slgArr,totalMrr=totalArr/12,nb=S.burn-totalMrr;
-  document.getElementById('kpi-rw').textContent=fRwRounded(s2rw);
-  document.getElementById('kpi-rw-sub').textContent='ends '+moLbl(Math.round(s2rw));
-  const nbEl=document.getElementById('kpi-nb');
-  nbEl.textContent=f$(nb); nbEl.className='kc-val '+(nb>0?'col-r':'col-g');
-  document.getElementById('kpi-arr').textContent=f$(totalArr);
-  document.getElementById('kpi-mrr-sub').textContent='MRR '+f$(totalMrr)+'/mo';
   const tmh=document.getElementById('total-mrr-hint'); if(tmh) tmh.textContent='MRR '+f$(S.totalArr/12);
   const pmh=document.getElementById('plg-mrr-hint'); if(pmh) pmh.textContent='MRR '+f$(S.plgArr/12);
   const smh=document.getElementById('slg-mrr-hint'); if(smh) smh.textContent='MRR '+f$(S.slgArr/12);
-  document.getElementById('kpi-plgch').textContent=fPct(S.sc.S2.plgC)+'/mo';
-  document.getElementById('kpi-plgch-ann').textContent='ann. ≈'+fAnn(S.sc.S2.plgC);
-  document.getElementById('kpi-slgch').textContent=fPct(S.sc.S2.slgC)+'/yr';
-  const ndr=100-(S.sc.S2.slgC||0)+(S.sc.S2.slgE||0);
-  document.getElementById('kpi-slgch-ann').textContent='NDR '+ndr.toFixed(0)+'%';
   const endLbl=moLbl(HORIZON);
   document.getElementById('ph-sub').textContent=`36-month horizon · ${moLbl(1)} → ${endLbl}`;
 }
@@ -886,16 +855,13 @@ function stepSc(id,key,delta){S.sc[id][key]=Math.max(0,Math.round(((S.sc[id][key
 // ── TOGGLE FUNCTIONS ──────────────────────────────────────────────────────
 function setJacobs(full){
   S.jacobsFull=full;
-  const no=document.getElementById('jac-no'), yes=document.getElementById('jac-yes'), hint=document.getElementById('jac-hint');
+  const no=document.getElementById('jac-no'), yes=document.getElementById('jac-yes');
   if(full){
     yes.style.background='var(--grn)'; yes.style.color='#04220f';
     no.style.background='var(--bg3)'; no.style.color='var(--muted)';
-    if(hint) hint.innerHTML=`Cash base: full <span style="color:var(--pur)">$214K</span> → $${(214000/12/1000).toFixed(1)}K/mo`;
   } else {
     no.style.background='var(--amb)'; no.style.color='#1a1200';
     yes.style.background='var(--bg3)'; yes.style.color='var(--muted)';
-    const eff=S.slgArr-(S.jacobsArr-S.jacobsCash);
-    if(hint) hint.innerHTML=`Cash base: <span style="color:var(--gs)">$${Math.round(eff/1000)}K</span> → $${(eff/12/1000).toFixed(2)}K/mo`;
   }
   refresh();
 }
@@ -1054,7 +1020,6 @@ function updateCashExhaustionBox(){
 function refresh(){
   populateFundingDropdown();
   updateKPIs();renderScRows();
-  document.getElementById('exec-body').innerHTML=buildExec();
   updateChart();updateArrChart();
 }
 
