@@ -165,50 +165,69 @@ canvas{display:block}
 </div>
 
 <div class="kpi-strip">
-  <div class="kc"><div class="kc-lbl">Starting Cash</div><div class="kc-val col-b" id="kpi-cash">—</div></div>
-  <div class="kc"><div class="kc-lbl">S2 Realistic Runway</div><div class="kc-val col-b" id="kpi-rw">—</div><div class="kc-sub" id="kpi-rw-sub">—</div></div>
-  <div class="kc"><div class="kc-lbl">Net Monthly Burn</div><div class="kc-val" id="kpi-nb">—</div></div>
-  <div class="kc"><div class="kc-lbl">Total ARR</div><div class="kc-val col-g" id="kpi-arr">—</div><div class="kc-sub" id="kpi-mrr-sub">—</div></div>
-  <div class="kc"><div class="kc-lbl">S2 PLG Churn</div><div class="kc-val col-r" id="kpi-plgch">—</div><div class="kc-sub" id="kpi-plgch-ann">—</div></div>
-  <div class="kc"><div class="kc-lbl">S2 SLG Churn</div><div class="kc-val col-r" id="kpi-slgch">—</div><div class="kc-sub" id="kpi-slgch-ann">—</div></div>
+  <div class="kc" style="min-width:120px">
+    <div class="kc-lbl">Dashboard Start</div>
+    <select class="fi" id="in-start-mo" style="margin-top:2px">
+      <option value="6" selected>Sep '26</option>
+      <option value="7">Oct '26</option>
+      <option value="8">Nov '26</option>
+      <option value="9">Dec '26</option>
+      <option value="10">Jan '27</option>
+      <option value="11">Feb '27</option>
+      <option value="12">Mar '27</option>
+    </select>
+  </div>
+  <div class="kc" style="min-width:110px">
+    <div class="kc-lbl">Starting Cash ($)</div>
+    <input class="fi" type="number" id="in-cash" value="3125000" style="margin-top:2px">
+  </div>
+  <div class="kc" style="min-width:110px">
+    <div class="kc-lbl">Total ARR ($) <span id="total-mrr-hint" style="color:var(--muted);text-transform:none;letter-spacing:0"></span></div>
+    <input class="fi" type="number" id="in-total-arr" value="313000" style="margin-top:2px">
+  </div>
+  <div class="kc" style="min-width:110px">
+    <div class="kc-lbl" style="color:var(--cyans)">PLG ARR ($) <span id="plg-mrr-hint" style="color:var(--muted);text-transform:none;letter-spacing:0"></span></div>
+    <input class="fi" type="number" id="in-plg-arr" value="99000" style="margin-top:2px">
+  </div>
+  <div class="kc" style="min-width:110px">
+    <div class="kc-lbl" style="color:var(--pur)">SLG ARR ($) <span id="slg-mrr-hint" style="color:var(--muted);text-transform:none;letter-spacing:0"></span></div>
+    <input class="fi" type="number" id="in-slg-arr" value="214000" disabled style="margin-top:2px;opacity:.55">
+  </div>
+  <div class="kc" style="min-width:110px">
+    <div class="kc-lbl">Gross Burn ($) <span style="color:var(--muted);text-transform:none;letter-spacing:0">exp−int</span></div>
+    <input class="fi" type="number" id="in-burn" value="295000" style="margin-top:2px">
+  </div>
+</div>
+
+<div class="kpi-strip" style="margin-top:-4px">
+  <div class="kc"><div class="kc-lbl">S2 Realistic Runway</div><div class="kc-val col-b" id="kpi-rw" style="font-size:13px">—</div><div class="kc-sub" id="kpi-rw-sub">—</div></div>
+  <div class="kc"><div class="kc-lbl">Net Monthly Burn</div><div class="kc-val" id="kpi-nb" style="font-size:13px">—</div></div>
+  <div class="kc"><div class="kc-lbl">Total ARR</div><div class="kc-val col-g" id="kpi-arr" style="font-size:13px">—</div><div class="kc-sub" id="kpi-mrr-sub">—</div></div>
+  <div class="kc"><div class="kc-lbl">S2 PLG Churn</div><div class="kc-val col-r" id="kpi-plgch" style="font-size:13px">—</div><div class="kc-sub" id="kpi-plgch-ann">—</div></div>
+  <div class="kc"><div class="kc-lbl">S2 SLG Churn</div><div class="kc-val col-r" id="kpi-slgch" style="font-size:13px">—</div><div class="kc-sub" id="kpi-slgch-ann">—</div></div>
 </div>
 
 <div class="lhs-inputs-table">
   <div class="lp">
-    <div class="sec">Baseline Inputs</div>
+    <div class="sec">SLG Billing <em id="slg-bill-hint" style="font-style:normal;color:var(--muted);font-size:9px">cash timing</em></div>
     <div class="ig">
-      <div class="ig-lbl">Dashboard Start Month</div>
-      <select class="fi" id="in-start-mo">
-        <option value="6" selected>Sep '26</option>
-        <option value="7">Oct '26</option>
-        <option value="8">Nov '26</option>
-        <option value="9">Dec '26</option>
-        <option value="10">Jan '27</option>
-        <option value="11">Feb '27</option>
-        <option value="12">Mar '27</option>
-      </select>
-    </div>
-    <div class="ig"><div class="ig-lbl">Starting Cash ($)</div><input class="fi" type="number" id="in-cash" value="3125000"></div>
-    <div class="ig">
-      <div class="ig-lbl">Total ARR ($) <em id="total-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-total-arr" value="313000">
-    </div>
-    <div class="ig">
-      <div class="ig-lbl"><span style="color:var(--cyans)">PLG</span> ARR ($) <em id="plg-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-plg-arr" value="99000">
-    </div>
-    <div class="ig">
-      <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> ARR ($) <em id="slg-mrr-hint"></em></div>
-      <input class="fi" type="number" id="in-slg-arr" value="214000" disabled style="opacity:.55">
-    </div>
-    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($) <em>exp − interest</em></div><input class="fi" type="number" id="in-burn" value="295000"></div>
-
-    <div class="ig">
-      <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> Billing <em id="slg-bill-hint">cash timing</em></div>
-      <div style="display:flex;gap:0;margin-top:2px;border:.5px solid var(--border);border-radius:4px;overflow:hidden">
-        <button id="bill-upfront" onclick="setBilling('upfront')" style="flex:1;padding:5px 4px;background:var(--blu);color:#fff;border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Upfront annual</button>
-        <button id="bill-smooth" onclick="setBilling('smooth')" style="flex:1;padding:5px 4px;background:var(--bg3);color:var(--muted);border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Smooth monthly</button>
+      <div style="display:flex;gap:0;border:.5px solid var(--border);border-radius:4px;overflow:hidden">
+        <button id="bill-upfront" onclick="setBilling('upfront')" style="flex:1;padding:6px 4px;background:var(--blu);color:#fff;border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Upfront annual</button>
+        <button id="bill-smooth" onclick="setBilling('smooth')" style="flex:1;padding:6px 4px;background:var(--bg3);color:var(--muted);border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Smooth monthly</button>
       </div>
+    </div>
+
+    <div class="hr"></div>
+    <div class="sec">Jacobs 100% Inclusion <em style="font-style:normal;color:var(--muted);font-size:9px">cash only</em></div>
+    <div class="ig">
+      <div style="font-size:9px;color:var(--muted);font-family:var(--mono);line-height:1.5;margin-bottom:5px">
+        Jacobs = <span style="color:var(--pur)">$105K</span> of SLG ARR but only <span style="color:var(--gs)">$14K</span> committed cash. Excluding lifts realism of cash/runway. ARR unaffected.
+      </div>
+      <div style="display:flex;gap:0;border:.5px solid var(--border);border-radius:4px;overflow:hidden">
+        <button id="jac-no" onclick="setJacobs(false)" style="flex:1;padding:6px 4px;background:var(--amb);color:#1a1200;border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">No — reduced</button>
+        <button id="jac-yes" onclick="setJacobs(true)" style="flex:1;padding:6px 4px;background:var(--bg3);color:var(--muted);border:none;font-family:var(--mono);font-size:9px;cursor:pointer;letter-spacing:.03em">Yes — full</button>
+      </div>
+      <div id="jac-hint" style="font-size:9px;color:var(--gs);font-family:var(--mono);margin-top:5px"></div>
     </div>
 
     <div class="hr"></div>
@@ -331,6 +350,9 @@ const S = {
   fundMo:  7,
   startMonthOffset: 5,
   slgBilling: 'upfront',  // 'upfront' | 'smooth'
+  jacobsFull: false,      // false = reduced cash (only $14K of $105K counts); true = full $105K
+  jacobsArr: 105000,      // Jacobs account ARR portion (cash-committed only 14K)
+  jacobsCash: 14000,      // Jacobs committed cash used when reduced
   fundScenarios: {S1:false, S2:false, S3:false},
   adjScenarios:  {S1:true,  S2:true,  S3:true},
   events: [
@@ -387,14 +409,19 @@ function simulate(cfg, horizon){
   const {startCash, startPlgMrr, startSlgMrr, startBurn,
          plgG, plgC, slgG, slgC, slgE,
          expGrowth, fundAmt, fundMo, events, arrEvents,
-         useRevenue, useEvents, useFunding, slgBilling} = cfg;
+         useRevenue, useEvents, useFunding, slgBilling,
+         jacobsFull, jacobsArr, jacobsCash} = cfg;
   const smooth = (slgBilling==='smooth');
 
   const cashArr=[startCash], plgSeries=[(startPlgMrr)*12], slgSeries=[(startSlgMrr)*12], dealArrSeries=[0];
   let cash=startCash, plgMrr=startPlgMrr, runout=null;
 
-  // SLG opening base (annual ARR value), stepped by NDR annually
+  // SLG opening base — ARR value (full), stepped by NDR annually. Used for ARR series.
   let slgOpenArr = startSlgMrr*12;
+  // SLG opening base — CASH value. Same as ARR unless Jacobs is reduced,
+  // in which case Jacobs' ARR ($105K) is swapped for its committed cash ($14K) for CASH ONLY.
+  const jReduce = (!jacobsFull && jacobsArr>0) ? (jacobsArr - (jacobsCash||0)) : 0;
+  let slgOpenCash = Math.max(slgOpenArr - jReduce, 0);
 
   // SLG new-booking cohorts (upfront mode): {arr, bookMonth}
   const cohorts=[];
@@ -413,16 +440,16 @@ function simulate(cfg, horizon){
   for(let m=1;m<=horizon;m++){
     const burn=startBurn*Math.pow(1+(expGrowth||0)/100,m-1);
 
-    // Add one-off ARR deals into the opening base
+    // Add one-off ARR deals into the opening base (ARR and cash both)
     if(useRevenue&&useEvents) for(const d of deals){
-      if(m===d.startMonth&&!d.applied){slgOpenArr+=d.arrAdded;d.applied=true;}
+      if(m===d.startMonth&&!d.applied){slgOpenArr+=d.arrAdded;slgOpenCash+=d.arrAdded;d.applied=true;}
     }
 
     let slgCashThisMonth = 0;
 
     // ── ARR engine (identical in both billing modes) ──
-    // Annual NDR step on opening base (months 13,25,37...)
-    if(useRevenue && m>1 && (m-1)%12===0){ slgOpenArr *= ndr; }
+    // Annual NDR step on opening base (months 13,25,37...) — step both ARR and cash bases
+    if(useRevenue && m>1 && (m-1)%12===0){ slgOpenArr *= ndr; slgOpenCash *= ndr; }
     // Cohort renewals (renew ×NDR). Cash collected only in upfront mode.
     if(useRevenue) for(const c of cohorts){
       const age = m - c.bookMonth;
@@ -441,16 +468,15 @@ function simulate(cfg, horizon){
     }
 
     // ── Cash collection (differs by mode) ──
+    // Opening-base cash uses slgOpenCash (reduced for Jacobs unless full); new bookings use ARR.
     if(useRevenue){
       if(!smooth){
-        // UPFRONT: opening base run-rate + last month's bookings (1-mo lag)
         slgCashThisMonth += pendingBookingCash;
-        pendingBookingCash = newBooking;         // this month's booking collected next month
-        slgCashThisMonth += slgOpenArr/12;
+        pendingBookingCash = newBooking;
+        slgCashThisMonth += slgOpenCash/12;
       } else {
-        // SMOOTH: total SLG ARR collected evenly, no upfront lump, no lag
         let cohortSumNow=0; for(const c of cohorts) cohortSumNow+=c.arr;
-        slgCashThisMonth += (slgOpenArr + cohortSumNow)/12;
+        slgCashThisMonth += (slgOpenCash + cohortSumNow)/12;
       }
     }
 
@@ -511,6 +537,7 @@ function makeCfg(id){
          events:S.events, arrEvents:S.arrEvents,
          useRevenue:sc.useRevenue,
          slgBilling:S.slgBilling,
+         jacobsFull:S.jacobsFull, jacobsArr:S.jacobsArr, jacobsCash:S.jacobsCash,
          useEvents: id==='S0' ? false : (S.adjScenarios[id]||false),
          useFunding: id==='S0' ? false : (S.fundScenarios[id]||false)};
 }
@@ -638,22 +665,20 @@ function buildExec(){
 // ── KPIs ──────────────────────────────────────────────────────────────────
 function updateKPIs(){
   const s2rw=trueRunway('S2'),totalArr=S.plgArr+S.slgArr,totalMrr=totalArr/12,nb=S.burn-totalMrr;
-  document.getElementById('kpi-cash').textContent=f$(S.cash);
   document.getElementById('kpi-rw').textContent=fRwRounded(s2rw);
   document.getElementById('kpi-rw-sub').textContent='ends '+moLbl(Math.round(s2rw));
   const nbEl=document.getElementById('kpi-nb');
   nbEl.textContent=f$(nb); nbEl.className='kc-val '+(nb>0?'col-r':'col-g');
   document.getElementById('kpi-arr').textContent=f$(totalArr);
   document.getElementById('kpi-mrr-sub').textContent='MRR '+f$(totalMrr)+'/mo';
-  document.getElementById('total-mrr-hint').textContent='MRR='+f$(S.totalArr/12);
-  document.getElementById('plg-mrr-hint').textContent='MRR='+f$(S.plgArr/12);
-  document.getElementById('slg-mrr-hint').textContent='MRR='+f$(S.slgArr/12);
+  const tmh=document.getElementById('total-mrr-hint'); if(tmh) tmh.textContent='MRR '+f$(S.totalArr/12);
+  const pmh=document.getElementById('plg-mrr-hint'); if(pmh) pmh.textContent='MRR '+f$(S.plgArr/12);
+  const smh=document.getElementById('slg-mrr-hint'); if(smh) smh.textContent='MRR '+f$(S.slgArr/12);
   document.getElementById('kpi-plgch').textContent=fPct(S.sc.S2.plgC)+'/mo';
   document.getElementById('kpi-plgch-ann').textContent='ann. ≈'+fAnn(S.sc.S2.plgC);
   document.getElementById('kpi-slgch').textContent=fPct(S.sc.S2.slgC)+'/yr';
   const ndr=100-(S.sc.S2.slgC||0)+(S.sc.S2.slgE||0);
   document.getElementById('kpi-slgch-ann').textContent='NDR '+ndr.toFixed(0)+'%';
-  // Update header subtitle
   const endLbl=moLbl(HORIZON);
   document.getElementById('ph-sub').textContent=`36-month horizon · ${moLbl(1)} → ${endLbl}`;
 }
@@ -859,6 +884,21 @@ function setSc(id,key,val){const v=parseFloat(val);if(isNaN(v))return;S.sc[id][k
 function stepSc(id,key,delta){S.sc[id][key]=Math.max(0,Math.round(((S.sc[id][key]||0)+delta)*100)/100);refresh();}
 
 // ── TOGGLE FUNCTIONS ──────────────────────────────────────────────────────
+function setJacobs(full){
+  S.jacobsFull=full;
+  const no=document.getElementById('jac-no'), yes=document.getElementById('jac-yes'), hint=document.getElementById('jac-hint');
+  if(full){
+    yes.style.background='var(--grn)'; yes.style.color='#04220f';
+    no.style.background='var(--bg3)'; no.style.color='var(--muted)';
+    if(hint) hint.innerHTML=`Cash base: full <span style="color:var(--pur)">$214K</span> → $${(214000/12/1000).toFixed(1)}K/mo`;
+  } else {
+    no.style.background='var(--amb)'; no.style.color='#1a1200';
+    yes.style.background='var(--bg3)'; yes.style.color='var(--muted)';
+    const eff=S.slgArr-(S.jacobsArr-S.jacobsCash);
+    if(hint) hint.innerHTML=`Cash base: <span style="color:var(--gs)">$${Math.round(eff/1000)}K</span> → $${(eff/12/1000).toFixed(2)}K/mo`;
+  }
+  refresh();
+}
 function setBilling(mode){
   S.slgBilling=mode;
   const up=document.getElementById('bill-upfront'), sm=document.getElementById('bill-smooth');
@@ -1050,6 +1090,7 @@ function init(){
   document.getElementById('in-fund-mo').addEventListener('change',function(){const v=parseInt(this.value);if(!isNaN(v)){S.fundMo=v;refresh();}});
   initChart();initArrChart();
   setBilling(S.slgBilling);
+  setJacobs(S.jacobsFull);
   refresh();
 }
 document.addEventListener('DOMContentLoaded',init);
