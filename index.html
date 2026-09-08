@@ -201,7 +201,7 @@ canvas{display:block}
       <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> ARR ($) <em id="slg-mrr-hint"></em></div>
       <input class="fi" type="number" id="in-slg-arr" value="214000" disabled style="opacity:.55">
     </div>
-    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($)</div><input class="fi" type="number" id="in-burn" value="285000"></div>
+    <div class="ig"><div class="ig-lbl">Monthly Gross Burn ($) <em>exp − interest</em></div><input class="fi" type="number" id="in-burn" value="295000"></div>
 
     <div class="ig">
       <div class="ig-lbl"><span style="color:var(--pur)">SLG</span> Billing <em id="slg-bill-hint">cash timing</em></div>
@@ -304,11 +304,12 @@ canvas{display:block}
 <div style="max-width:100%;margin-top:14px;background:var(--bg2);border:.5px solid var(--border);border-radius:6px;padding:14px 18px;box-shadow:var(--shadow)">
   <div style="font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:.5px solid var(--border)">Methodology &amp; Modelling Notes</div>
   <div style="font-size:11px;line-height:1.75;color:#aab3c5;font-family:var(--sans)">
+    <p style="margin-bottom:8px"><strong style="color:var(--as);font-family:var(--mono)">Monthly Gross Burn ($295K)</strong> is total cash operating expenses (~$300K) <strong>net of interest income</strong> (~$5K/mo, a conservative through-cycle average as the cash balance draws down). It does <strong>not</strong> net out any customer/product revenue — all PLG and SLG revenue is added separately by the revenue engine below, so customer revenue is counted exactly once. Interest is netted here because it is not ARR-driven and the revenue engine cannot otherwise capture it. Adjustments (expenses, savings, one-off items) are also separate from this figure.</p>
     <p style="margin-bottom:8px"><strong style="color:var(--cyans);font-family:var(--mono)">PLG</strong> is modelled as a monthly-billed motion. Growth and churn are applied every month to the PLG ARR base: each month the base moves by <em>(New %/mo − Churn %/mo)</em>. Cash is collected evenly, one-twelfth of ARR per month.</p>
     <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">SLG</strong> is modelled on annual-upfront billing, and its growth, churn and expansion run on different clocks:</p>
     <p style="margin-bottom:4px;padding-left:14px">• <strong>New bookings — monthly.</strong> Each month new SLG ARR is booked equal to <em>New %/mo × current SLG ARR</em>. That annual contract value is collected as cash <strong>one month later</strong> (30-day billing lag), upfront for the full year.</p>
     <p style="margin-bottom:4px;padding-left:14px">• <strong>Churn &amp; Expansion — annual, at renewal.</strong> Each booked cohort renews every 12 months at <em>value × NDR</em>, where <strong>NDR = 100% − SLG churn %/yr + SLG expansion %/yr</strong> (e.g. −5% churn +10% expansion → 105% net revenue retention). The renewed annual value is re-collected upfront in the renewal month.</p>
-    <p style="margin-bottom:8px;padding-left:14px">• <strong>Opening SLG base ($214K)</strong> is treated as a flat monthly run-rate (base ÷ 12 collected each month) for simplicity — it is not cohort-tracked. Once per year the NDR step is applied to the base so it gently rises or falls annually rather than dropping off a cliff.</p>
+    <p style="margin-bottom:8px;padding-left:14px">• <strong>Opening SLG base ($214K)</strong> is <strong>assumed to be collected smoothly over 12 months</strong> (base ÷ 12 each month) rather than upfront at renewal — a deliberate simplification for the existing book. It is not cohort-tracked. Once per year the NDR step is applied to the base so it gently rises or falls annually rather than dropping off a cliff. Note: this smooth treatment applies to the <em>opening</em> base regardless of the billing toggle; the toggle governs how <em>new</em> SLG bookings and their renewals are collected.</p>
     <p style="margin-bottom:8px">Because SLG cash is collected upfront on bookings and renewals, the <strong>Cash Runway</strong> line is lumpier than a smoothed run-rate model and generally shows more cash during growth phases — this reflects real annual-contract billing. The <strong>ARR chart</strong> remains a smoother measure of contracted run-rate. The two are intentionally decoupled. The <strong>SLG Billing toggle</strong> (left panel) switches SLG cash collection between <em>Upfront annual</em> (bookings and renewals collected as a full year of cash, 1-month lag) and <em>Smooth monthly</em> (the same ARR collected evenly, ⅟₁₂ per month). Upfront is the realistic basis; Smooth is a conservative comparison. The ARR chart is identical under both — only cash timing and runway change.</p>
     <p style="margin-bottom:8px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong>: <em>Expense</em> and <em>Savings</em> affect cash only. <em>One-time ARR</em> (e.g. a named deal) is added to the SLG base and follows the annual NDR thereafter. <em>Recurring income</em> (e.g. AI Revenues) is decoupled from PLG/SLG — it adds monthly cash (optionally growing at a monthly rate) and shows on the ARR chart as the current monthly amount × 12; it persists at its last value after its window ends.</p>
     <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cumulative cash reaches zero. Milestone columns (Dec '26 / Mar '27) and the ARR chart totals show PLG + SLG + recurring-income ARR. One rate set per scenario drives the full horizon. All figures are model estimates for planning, not forecasts.</p>
@@ -325,7 +326,7 @@ const S = {
   totalArr:313000,
   plgArr:  99000,
   slgArr:  214000,
-  burn:    285000,
+  burn:    295000,
   fundAmt: 5000000,
   fundMo:  7,
   startMonthOffset: 5,
