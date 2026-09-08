@@ -312,6 +312,8 @@ canvas{display:block}
     <p style="margin-bottom:7px"><strong>SLG Billing toggle</strong> — <em>Upfront</em> (realistic, lumpier cash) vs <em>Smooth</em> (conservative, even ⅟₁₂). ARR is identical both ways; only cash timing and runway change.</p>
     <p style="margin-bottom:7px"><strong style="color:var(--gs);font-family:var(--mono)">Jacobs Committed Cash</strong> — the Jacobs account carries <span style="color:var(--pur)">$105K</span> of SLG ARR but only <span style="color:var(--gs)">$14K</span> of committed cash. <strong>No</strong> (default): cash counts the reduced base = 214K − 105K + 14K = <strong>$123K</strong> → ~$10.25K/mo, stepped at NDR annually. <strong>Yes</strong>: full $214K → ~$17.83K/mo. Affects <em>cash/runway only</em> — ARR is unchanged in both.</p>
     <p style="margin-bottom:7px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong> — Expense/Savings hit cash only. One-time ARR joins the SLG base (follows NDR). Recurring income (AI Revenues) is decoupled: monthly cash (optionally growing) + ARR shown as monthly × 12, persisting after its window.</p>
+    <p style="margin-bottom:7px;color:var(--muted);font-size:10px"><strong>Runway-end month</strong> is rounded; the precise figure is the "X mo Y d exact" text. Chart nodes plot end-of-month cash, so a scenario may still show a small positive balance at its final labelled month.</p>
+    <p style="margin-bottom:7px;color:var(--muted);font-size:10px"><strong>Adjustment impact (days)</strong> is scenario-agnostic: the item's net cash over 12 months ÷ monthly gross burn, expressed in days (e.g. +$120K income ÷ $295K burn ≈ +12 days). Expenses reduce runway; income, savings and ARR add to it.</p>
     <p style="margin-bottom:0;color:var(--muted);font-size:10px">Runway ends when cash hits zero. Milestone columns and ARR totals = PLG + SLG + recurring-income ARR. One rate set per scenario. Model estimates for planning, not forecasts.</p>
   </div>
 </div>
@@ -683,15 +685,34 @@ function populateMonthDropdowns(){
 }
 
 // ── EVENTS ────────────────────────────────────────────────────────────────
-function eventImpactDays(ev){
-  const base=simulate(makeCfg('S2'),60);
-  const wo=simulate({...makeCfg('S2'),events:S.events.filter(e=>e.id!==ev.id)},60);
-  return Math.round((wo.runway-base.runway)*30.4375);
+// Scenario-agnostic impact: net cash effect over a 12-month window ÷ monthly gross burn → days.
+// e.g. +$120K of income against $298K burn → +120/298 of a month ≈ +12 days.
+function eventCashDays(ev){
+  const burn=S.burn||1;
+  let cash12=0;
+  const amt=ev.amount||0;
+  if(ev.type==='expense'){
+    // total spend over its active window, capped at 12 months
+    const span=ev.monthEnd&&ev.monthEnd>ev.month?(ev.monthEnd-ev.month+1):1;
+    cash12 = -amt*Math.min(span,12);
+  } else if(ev.type==='savings'){
+    const span=ev.monthEnd&&ev.monthEnd>ev.month?(ev.monthEnd-ev.month+1):1;
+    cash12 = amt*Math.min(span,12);
+  } else if(ev.type==='income'){
+    // recurring income: 12-month cumulative cash, compounding at growthPct
+    const g=(ev.growthPct||0)/100;
+    const span=ev.monthEnd&&ev.monthEnd>ev.month?(ev.monthEnd-ev.month+1):1;
+    const months=Math.min(span,12);
+    for(let k=0;k<months;k++) cash12+=amt*Math.pow(1+g,k);
+  }
+  const days=Math.round((cash12/burn)*30.4375);
+  return days;
 }
-function arrEventImpactDays(ev){
-  const base=simulate(makeCfg('S2'),60);
-  const wo=simulate({...makeCfg('S2'),arrEvents:S.arrEvents.filter(e=>e.id!==ev.id)},60);
-  return Math.round((base.runway-wo.runway)*30.4375);
+function arrEventCashDays(ev){
+  // One-off ARR (e.g. NELSON): upfront annual cash on booking = full amount collected within 12m.
+  const burn=S.burn||1;
+  const cash12=(ev.amount||0);
+  return Math.round((cash12/burn)*30.4375);
 }
 function delEv(id){S.events=S.events.filter(e=>e.id!==id);refresh();}
 function delArrEv(id){S.arrEvents=S.arrEvents.filter(e=>e.id!==id);refresh();}
@@ -716,8 +737,8 @@ function closeForm(){document.getElementById('ev-form-wrap').classList.remove('o
 // ── RENDER ROWS ───────────────────────────────────────────────────────────
 const SC_META={
   S0:{name:'S0 Burn Only',desc:'Pure burn. No revenue or adjustments.',isPlan:false,pill:'p-r',rc:'col-m'},
-  S1:{name:'S1 Conservative',desc:'Current run rates.',isPlan:false,pill:'p-r',rc:'col-r'},
-  S2:{name:'S2 Realistic',   desc:'',isPlan:true,pill:'p-b',rc:'col-b'},
+  S1:{name:'S1 Conservative',desc:'Current run rates.',isPlan:true,pill:'p-r',rc:'col-r'},
+  S2:{name:'S2 Realistic',   desc:'',isPlan:false,pill:'p-b',rc:'col-b'},
   S3:{name:'S3 Optimistic',  desc:'',isPlan:false,pill:'p-g',rc:'col-g'},
 };
 
@@ -807,9 +828,10 @@ function sharedAdjHTML(){
   html+=S.events.map(e=>{
     const end=e.monthEnd&&e.monthEnd>e.month?e.monthEnd:null;
     const totalAmt=end?((e.amount||0)*(end-e.month+1)):(e.amount||0);
-    const impD=eventImpactDays(e),isExp=e.type==='expense';
-    const impTxt=isExp?(impD>0?`−${impD}d runway`:`no impact`):(impD<0?`+${Math.abs(impD)}d runway`:`no impact`);
-    const impCls=isExp&&impD>0?'neg':((!isExp&&impD<0)?'pos':'');
+    const impD=eventCashDays(e),isExp=e.type==='expense';
+    const amtEntered=(e.amount||0)>0;
+    const impTxt = !amtEntered ? `enter amount` : (impD===0?`~0d runway`:(impD>0?`+${impD}d runway`:`${impD}d runway`));
+    const impCls = !amtEntered ? '' : (impD<0?'neg':(impD>0?'pos':''));
     // Build month options
     const moOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${m===e.month?'selected':''}>${moLbl(m)}</option>`;}).join('');
     const moEndOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${end&&m===end?'selected':''}>${moLbl(m)}</option>`;}).join('');
@@ -826,7 +848,9 @@ function sharedAdjHTML(){
     </div>`;
   }).join('');
   html+=S.arrEvents.map(e=>{
-    const d=arrEventImpactDays(e);
+    const d=arrEventCashDays(e);
+    const amtEntered=(e.amount||0)>0;
+    const arrImpTxt = !amtEntered ? `enter amount` : (d===0?`~0d runway`:`+${d}d runway`);
     const moOpts=Array.from({length:HORIZON},(_,i)=>{const m=i+1;return`<option value="${m}" ${m===e.month?'selected':''}>${moLbl(m)}</option>`;}).join('');
     return`<div class="ev-tag">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -835,7 +859,7 @@ function sharedAdjHTML(){
         <input type="number" placeholder="enter amount" style="width:96px;background:var(--bg4);border:.5px solid var(--border);color:var(--gs);font-family:var(--mono);font-size:9px;padding:2px 4px;border-radius:3px;outline:none;text-align:right" value="${e.amount!=null?e.amount:''}" onchange="updateArrEvAmt(${e.id},this.value)">
         <button class="ev-del" onclick="delArrEv(${e.id})">×</button>
       </div>
-      <div class="ev-impact pos">+${d}d runway</div>
+      <div class="ev-impact ${amtEntered?'pos':''}">${arrImpTxt}</div>
     </div>`;
   }).join('');
   html+=`<button class="add-ev-btn" onclick="openForm()">+ Adj — Exp / ARR / Savings</button>`;
