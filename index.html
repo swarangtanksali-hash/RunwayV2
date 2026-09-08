@@ -23,8 +23,8 @@
   --sans:'IBM Plex Sans',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:16px 18px 30px;overflow-x:hidden}
-.wrap{max-width:1600px;margin:0 auto}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5;padding:16px 48px 30px;overflow-x:hidden}
+.wrap{max-width:1500px;margin:0 auto}
 
 .ph{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:.5px solid var(--border)}
 .ph-ttl{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.05em}
@@ -50,10 +50,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13
 
 .master-layout{display:grid;grid-template-columns:60% 40%;gap:10px;align-items:start;min-height:0}
 .lhs{display:flex;flex-direction:column;gap:8px;min-width:0}
-.lhs-inputs-table{display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:start}
+.lhs-inputs-table{display:grid;grid-template-columns:200px 1fr;gap:8px;align-items:stretch}
 .charts-col{display:flex;flex-direction:column;gap:8px;position:sticky;top:8px}
 
-.lp{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;padding:12px;box-shadow:var(--shadow);position:sticky;top:8px}
+.lp{background:var(--bg2);border:.5px solid var(--border);border-radius:6px;padding:12px;box-shadow:var(--shadow);align-self:stretch}
 .sec{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:.5px solid var(--border)}
 .ig{margin-bottom:7px}
 .ig-lbl{font-size:10px;color:var(--dim);margin-bottom:3px;display:flex;justify-content:space-between}
@@ -308,7 +308,7 @@ canvas{display:block}
   <div style="font-size:11px;line-height:1.7;color:#aab3c5;font-family:var(--sans)">
     <p style="margin-bottom:7px"><strong style="color:var(--as);font-family:var(--mono)">Gross Burn ($295K)</strong> = operating expenses (~$300K) net of interest income (~$5K/mo). Customer revenue is <strong>not</strong> netted here — all PLG/SLG revenue is added separately, so it's counted once.</p>
     <p style="margin-bottom:7px"><strong style="color:var(--cyans);font-family:var(--mono)">PLG</strong> — monthly-billed. Base moves <em>(New − Churn) %/mo</em>; cash collected ⅟₁₂ of ARR monthly.</p>
-    <p style="margin-bottom:7px"><strong style="color:var(--pur);font-family:var(--mono)">SLG</strong> — annual-upfront billing. New bookings = <em>New %/mo × current SLG ARR</em>, collected upfront one month later. Cohorts renew every 12 months at <strong>NDR = 100 − churn%/yr + expansion%/yr</strong> (e.g. 105%), re-collected upfront. Opening $214K base is collected smoothly (÷12/mo) with the annual NDR step; the billing toggle only governs <em>new</em> bookings/renewals.</p>
+    <p style="margin-bottom:7px"><strong style="color:var(--pur);font-family:var(--mono)">SLG</strong> — annual-upfront billing. New bookings = <em>New %/mo × current SLG ARR</em>, collected upfront one month later. Cohorts renew every 12 months at <strong>NDR = 100 − churn%/yr + expansion%/yr</strong> (e.g. 105%), re-collected upfront. Opening $214K base is collected smoothly (÷12/mo, subject to Jacobs toggle) with the annual NDR step; the billing toggle only governs <em>new</em> bookings/renewals.</p>
     <p style="margin-bottom:7px"><strong>SLG Billing toggle</strong> — <em>Upfront</em> (realistic, lumpier cash) vs <em>Smooth</em> (conservative, even ⅟₁₂). ARR is identical both ways; only cash timing and runway change.</p>
     <p style="margin-bottom:7px"><strong style="color:var(--gs);font-family:var(--mono)">Jacobs Committed Cash</strong> — the Jacobs account carries <span style="color:var(--pur)">$105K</span> of SLG ARR but only <span style="color:var(--gs)">$14K</span> of committed cash. <strong>No</strong> (default): cash counts the reduced base = 214K − 105K + 14K = <strong>$123K</strong> → ~$10.25K/mo, stepped at NDR annually. <strong>Yes</strong>: full $214K → ~$17.83K/mo. Affects <em>cash/runway only</em> — ARR is unchanged in both.</p>
     <p style="margin-bottom:7px"><strong style="color:var(--pur);font-family:var(--mono)">Adjustments</strong> — Expense/Savings hit cash only. One-time ARR joins the SLG base (follows NDR). Recurring income (AI Revenues) is decoupled: monthly cash (optionally growing) + ARR shown as monthly × 12, persisting after its window.</p>
