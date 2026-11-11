@@ -22,8 +22,8 @@ const NEW_RATES = [0.30, 0.30, 0.30, 0.30, 0.30, 0.30, 0.275];
 const newRate = (m) => (m <= NEW_RATES.length ? NEW_RATES[m - 1] : 0.25);
 const plgArrClose = (m, churn) => {                                   // ARR at end of month m
   let a = PLG0;
-  // Nov-Jan: fixed $81K new ARR (~150 users x $45 x 12); then new% of base
-  for (let k = 1; k <= m; k++) a = k <= 3 ? a * (1 - churn) + 81000 : a * (1 + newRate(k) - churn);
+  // Nov-Jan: fixed $70K new ARR (~125 users x $45 x 12); then new% of base
+  for (let k = 1; k <= m; k++) a = k <= 3 ? a * (1 - churn) + 70000 : a * (1 + newRate(k) - churn);
   return a;
 };
 const aiArrClose = (m) => AI0 * Math.pow(1.05, m);
@@ -270,32 +270,19 @@ test('each deal is independent and additive', () => {
   allRows.forEach((r, i) => close(r.cashClose - base[i].cashClose, sum[i], `additive m${r.m}`));
 });
 
-test('marketing in fixed-$ PLG months: spend leaves cash, ARR is already inside the $81K', () => {
-  const base = E.simulate(D(), H);
-  const p = D(); p.marketing.on = true;
-  const rows = E.simulate(p, H);
-  rows.forEach((r, i) => {
-    close(r.outMkt, r.m <= 3 ? 35000 : 0, `spend m${r.m}`);
-    close(r.arrMkt, 0, `no separate mkt ARR m${r.m}`);
-    close(r.arrTotal, base[i].arrTotal, `ARR unchanged m${r.m}`);
-    close(r.cashClose, base[i].cashClose - 35000 * Math.min(r.m, 3), `cash m${r.m}`);
-  });
-});
-
-test('PLG fixed $ new ARR: Nov-Jan +$81K/mo before 20% churn, then 30% of base (by hand)', () => {
+test('PLG fixed $ new ARR: Nov-Jan +$70K/mo before 20% churn, then 30% of base (by hand)', () => {
   const rows = E.simulate(D(), 6);
-  close(rows[0].arrPlg, 142557 * 0.8 + 81000);                  // Nov '26: 195,045.6
-  close(rows[1].arrPlg, (142557 * 0.8 + 81000) * 0.8 + 81000);  // Dec '26
-  close(rows[2].arrPlg, ((142557 * 0.8 + 81000) * 0.8 + 81000) * 0.8 + 81000); // Jan '27
+  close(rows[0].arrPlg, 184045.6);                              // Nov '26: 142,557 x 0.8 + 70,000
+  close(rows[1].arrPlg, 217236.48);                             // Dec '26: 184,045.6 x 0.8 + 70,000
+  close(rows[2].arrPlg, 243789.184);                            // Jan '27: 217,236.48 x 0.8 + 70,000
   close(rows[3].arrPlg, rows[2].arrPlg * 1.10);                 // Feb '27: 30% new - 20% churn
   const p = D(); p.plg.newFixedMonths = 0;                      // switched off = pure % rule
   close(E.simulate(p, 1)[0].arrPlg, 142557 * 1.10);
 });
 
-test('marketing (no fixed-$ months): 3 x $35K spend, ARR lands 1x and churns at PLG rate only', () => {
-  const nofix = () => { const q = D(); q.plg.newFixedMonths = 0; return q; };
-  const base = E.simulate(nofix(), H);
-  const p = nofix(); p.marketing.on = true;
+test('marketing: 3 x $35K spend, ARR lands 1x ON TOP of PLG new ARR and churns at PLG rate only', () => {
+  const base = E.simulate(D(), H);
+  const p = D(); p.marketing.on = true;
   const rows = E.simulate(p, H);
   // ARR (closing): m1 35000; m2 35000*0.8+35000; m3 63000*0.8+35000; then decays 20%/mo
   const arr = [35000, 63000, 85400];
@@ -305,6 +292,7 @@ test('marketing (no fixed-$ months): 3 x $35K spend, ARR lands 1x and churns at 
     close(r.arrMkt, arr[i], `mkt ARR m${r.m}`);
     close(r.inMkt, i === 0 ? 0 : arr[i - 1] / 12, `mkt cash m${r.m}`);
     close(r.arrPlg, base[i].arrPlg); // no compounding on the organic base
+    close(r.arrTotal, base[i].arrTotal + arr[i], `on top m${r.m}`);
   });
 });
 
@@ -320,14 +308,19 @@ test('PLG new % schedule: 30% for 6 months, -2.5 pts/mo, 25% floor', () => {
   assert.throws(() => E.simulate(q, H));
 });
 
-test('PLG churn reduction: 20% -> 15%', () => {
+test('Lower PLG churn switch: off by default; on = whole base at the editable rate (15%, try 10%)', () => {
   const p = D();
+  assert.equal(p.plg.churnReductionOn, false);
   assert.equal(E.plgChurnRate(p), 0.20);
   p.plg.churnReductionOn = true;
   assert.equal(E.plgChurnRate(p), 0.15);
   E.simulate(p, H).forEach(r => close(r.arrPlg, plgArrClose(r.m, 0.15), `PLG m${r.m}`));
-  p.plg.churnPct = 3; // reduction can never make churn negative
-  assert.equal(E.plgChurnRate(p), 0);
+  close(E.simulate(p, 1)[0].arrPlg, 142557 * 0.85 + 70000);     // existing base churns at 15% too
+  p.plg.lowChurnPct = 10;
+  assert.equal(E.plgChurnRate(p), 0.10);
+  E.simulate(p, H).forEach(r => close(r.arrPlg, plgArrClose(r.m, 0.10), `PLG 10% m${r.m}`));
+  p.plg.lowChurnPct = -1;
+  assert.throws(() => E.simulate(p, H));
 });
 
 test('everything on: cash equals baseline + each lever computed independently', () => {
@@ -338,7 +331,9 @@ test('everything on: cash equals baseline + each lever computed independently', 
   p.costs.anthropic = 80000;
   const rows = E.simulate(p, H);
   const dealCash = { 4: 200000, 6: 100000, 9: 100000, 16: 210000, 18: 105000, 21: 105000, 28: 220500, 30: 110250, 33: 110250 };
-  const mkt = new Array(H).fill(0); // marketing months are fixed-$ PLG months: ARR inside the $81K
+  const mkt = [35000, 35000 * 0.85 + 35000];                    // marketing ARR on top, churning at 15%
+  mkt.push(mkt[1] * 0.85 + 35000);
+  for (let m = 4; m <= H; m++) mkt.push(mkt[m - 2] * 0.85);
   let cash = 2316098;
   for (let m = 1; m <= H; m++) {
     const inflow = baselineInflow(m, 0.15) + (dealCash[m] || 0) + (m > 1 ? mkt[m - 2] / 12 : 0);
@@ -366,7 +361,7 @@ function synthetic(cash, target) {
   const p = D();
   p.openingCash = cash; p.targetArr = target; p.arrRounding = 0; // exact target in hand-solved cases
   p.costs = { base: 1000, anthropic: 0 };
-  p.plg = { subArr: 1200, newFixedArr: 0, newFixedMonths: 0, newPct: 100, newHoldMonths: 0, newStepPts: 0, newFloorPct: 0, churnPct: 0, churnReductionPts: 0, churnReductionOn: false };
+  p.plg = { subArr: 1200, newFixedArr: 0, newFixedMonths: 0, newPct: 100, newHoldMonths: 0, newStepPts: 0, newFloorPct: 0, churnPct: 0, lowChurnPct: 0, churnReductionOn: false };
   p.ai = { arr: 0, growthPct: 0 };
   p.slg = { arr: 0, churnPct: 0, expPct: 0, jacobsArr: 0 };
   p.collections = [];
@@ -548,11 +543,13 @@ test('matchScenario returns null (Custom) once a switch differs', () => {
 });
 
 // ── $1M rounding rule, preset headline numbers, hand-calc sense checks (Nov 11 audit) ──
-test('$1M test uses ARR rounded to the nearest $5K: $997,500 counts, a cent less does not', () => {
+test('$1M test uses ARR rounded to the nearest $10K: $995,000 counts, a cent less does not', () => {
   const p = D();
-  assert.equal(p.arrRounding, 5000);
-  assert.equal(E.meetsTarget(p, 997500), true);
-  assert.equal(E.meetsTarget(p, 997499.99), false);
+  assert.equal(p.arrRounding, 10000);
+  assert.equal(E.meetsTarget(p, 995000), true);
+  assert.equal(E.meetsTarget(p, 994999.99), false);
+  assert.equal(E.meetsTarget(p, 994147), false); // Bear without L&T, Jul '27: still a near miss
+  assert.equal(E.meetsTarget(p, 995234), true);  // Bull without Car Wash, Jan '27: now counts
   assert.equal(E.meetsTarget(p, 999669), true);  // the Base-without-Car-Wash May '27 near miss
   p.arrRounding = 0;
   assert.equal(E.meetsTarget(p, 999999.99), false);
@@ -572,9 +569,9 @@ test('preset headline numbers are pinned (any change that moves a board number m
   const expect = {
     // Nov 11 '26 (later): PLG new ARR fixed $81K/mo Nov-Jan (marketing users inside it).
     // Moved Bear Jun -> Apr '27; Base and Bull $1M months unchanged, runways ~+7-12 days.
-    bear: { hit: 6, cash: 998717, runout: 10.3230, status: 'ok' },
-    base: { hit: 5, cash: 1410401, runout: 12.2905, status: 'ok' }, // marketing removed from Base (Nov 11): +$105K cash
-    bull: { hit: 3, cash: 1764155, runout: 13.8464, status: 'ok' }
+    bear: { hit: 7, cash: 742522, runout: 10.2237, status: 'low-runway' }, // $70K PLG (was $81K): Apr -> May '27
+    base: { hit: 5, cash: 1403137, runout: 12.1381, status: 'ok' }, // marketing out of Base; PLG $70K/mo Nov-Jan
+    bull: { hit: 3, cash: 1769755, runout: 13.8587, status: 'ok' }  // marketing ARR now on top of PLG new ARR
   };
   Object.keys(expect).forEach(id => {
     const a = E.analyse(E.applyScenario(D(), id)), x = expect[id];
@@ -597,12 +594,12 @@ test('sense check: Anthropic runway effect within 10% of extra cost x months / n
         id + ' ' + alt + ': hand calc ' + chk.days + ' vs page ' + exactDays + ' days');
     });
   });
-  // Base $50K -> $80K: $30K x ~10.3 mo / ~$210K net burn ~= 47 days (42 at audit; 45 after $81K PLG; 47 with marketing out of Base)
+  // Base $50K -> $80K: $30K x ~10.3 mo / ~$210K net burn ~= 46 days (42 at audit; 47 with $81K PLG and marketing out of Base; 46 with $70K PLG)
   assert.equal(Math.abs(E.monthsToDays(E.leverImpact(E.applyScenario(D(), 'base'),
-    q => { q.costs.anthropic = 80000; }, q => { q.costs.anthropic = 50000; }).runoutDelta)), 47);
+    q => { q.costs.anthropic = 80000; }, q => { q.costs.anthropic = 50000; }).runoutDelta)), 46);
 });
 
-test('sense check: removing a deal delays $1M by about its ARR / monthly ARR growth (+/- 1 month)', () => {
+test('sense check: removing a deal delays $1M by about (its ARR - margin above $1M) / monthly ARR growth (+/- 1.5 months)', () => {
   ['bear', 'base', 'bull'].forEach(id => {
     const p = E.applyScenario(D(), id);
     ['lt', 'carwash', 'others', 'itc'].forEach(g => {
@@ -613,8 +610,10 @@ test('sense check: removing a deal delays $1M by about its ARR / monthly ARR gro
       const hitWith = E.analyse(p).hit, hitWithout = E.analyse(q).hit;
       const rows = E.simulate(q, 24);
       const growth = (rows[hitWith + 5].arrTotal - rows[hitWith - 1].arrTotal) / 6; // avg monthly growth after the hit
-      const est = arr / growth;
-      assert.ok(Math.abs((hitWithout - hitWith) - est) <= 1,
+      const margin = E.simulate(p, 24)[hitWith - 1].arrTotal - p.targetArr; // ARR already above $1M at the hit
+      const est = Math.max(arr - margin, 0) / growth;
+      // +-1.5: both $1M dates are whole months, so a near miss (e.g. Bear -L&T: Jul '27 $994K) adds up to a month
+      assert.ok(Math.abs((hitWithout - hitWith) - est) <= 1.5,
         id + ' -' + g + ': shift ' + (hitWithout - hitWith) + ' vs hand calc ' + est.toFixed(1));
     });
   });

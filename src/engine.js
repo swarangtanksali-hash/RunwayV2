@@ -10,9 +10,7 @@
  *    new%(m) = newPct for months 1..newHoldMonths, then falls newStepPts per month to newFloorPct.
  *    Exception: for months 1..newFixedMonths, new ARR is a fixed dollar amount (newFixedArr) instead
  *    of new% x base, i.e. ARR_close(m) = ARR_open(m) * (1 - churn%) + newFixedArr.
- *  - Marketing: in fixed-dollar PLG months the marketing-acquired ARR is already inside newFixedArr,
- *    so no separate marketing ARR is added then (spend still leaves cash). Otherwise:
- *    spend leaves cash in month m; the acquired ARR (spend x ROI) is counted in
+ *  - Marketing: on top of PLG new ARR (fixed-$ or %). Spend leaves cash in month m; the acquired ARR (spend x ROI) is counted in
  *    ARR_close(m) and collects monthly from m+1. That cohort only churns (no new% on it).
  *  - AI credits: ARR_close(m) = ARR_open(m) * (1 + growth%).
  *  - SLG opening base: steps by NDR = 1 - churn% + expansion% at the start of months 13, 25, ...
@@ -26,8 +24,8 @@
  *    (offsets in months from close, % of contract value). Each deal renews every 12 months
  *    at value x NDR, re-collected on the same relative schedule.
  *  - Runway: fractional month where cash first reaches <= 0, interpolated inside that month.
- *  - $1M reached: first month whose closing total ARR, rounded to the nearest arrRounding ($5K),
- *    is >= target, i.e. ARR >= target - arrRounding / 2 ($997,500 counts as $1M).
+ *  - $1M reached: first month whose closing total ARR, rounded to the nearest arrRounding ($10K),
+ *    is >= target, i.e. ARR >= target - arrRounding / 2 ($995,000 counts as $1M).
  */
 (function (root, factory) {
   'use strict';
@@ -88,7 +86,7 @@
     nonNeg(p.plg.newFloorPct, 'plg.newFloorPct');
     if (p.plg.newFloorPct > p.plg.newPct) throw new RangeError('plg.newFloorPct cannot exceed plg.newPct');
     nonNeg(p.plg.churnPct, 'plg.churnPct');
-    nonNeg(p.plg.churnReductionPts, 'plg.churnReductionPts');
+    nonNeg(p.plg.lowChurnPct, 'plg.lowChurnPct');
     nonNeg(p.ai.arr, 'ai.arr');
     fin(p.ai.growthPct, 'ai.growthPct');
     if (p.ai.growthPct <= -100) throw new RangeError('ai.growthPct must be > -100');
@@ -128,8 +126,8 @@
   }
 
   function plgChurnRate(p) {
-    var pts = p.plg.churnPct - (p.plg.churnReductionOn ? p.plg.churnReductionPts : 0);
-    return Math.max(pts, 0) / 100;
+    // "Lower PLG churn" switch: the whole PLG base (and marketing ARR) churns at lowChurnPct instead.
+    return (p.plg.churnReductionOn ? p.plg.lowChurnPct : p.plg.churnPct) / 100;
   }
   // PLG new ARR % of the opening base in month m (held, then stepped down to a floor).
   // Fixed-dollar PLG new ARR applies in months 1..newFixedMonths.
@@ -213,7 +211,7 @@
       // End-of-month ARR movements
       var plgNew = plgNewArr(p, m, plgArr);
       plgArr = Math.max(plgArr * (1 - plgChurn) + plgNew, 0);
-      mktArr = mktArr * (1 - plgChurn) + (mktActive && !plgFixedMonth(p, m) ? mk.monthlySpend * mk.roi : 0);
+      mktArr = mktArr * (1 - plgChurn) + (mktActive ? mk.monthlySpend * mk.roi : 0);
       aiArr = aiArr * (1 + aiG);
 
       rows.push({
@@ -339,16 +337,16 @@
       start: clone(START),
       horizon: 36,
       targetArr: 1000000,
-      arrRounding: 5000,                          // $1M test uses ARR rounded to the nearest $5K
+      arrRounding: 10000,                         // $1M test uses ARR rounded to the nearest $10K (user, Nov 11)
       openingCash: 2316098,                       // FS Cash Burn MvM, Oct '26
       costs: { base: 250000, anthropic: 50000 },  // anthropic: 50K base; selector 80K / 25K
       anthropicBase: 50000,
       // OpenAI credits: $50K off inference cost, 50% Nov / 50% Dec
       openAiCredit: { on: true, total: 50000, startMonth: at(2026, 10), months: 2 },
       // PLG new ARR: 30% of base for 6 months (Nov-Apr), then -2.5 pts/mo to a 25% floor (from Jun '27)
-      // Nov-Jan: fixed $81K/mo new PLG ARR (~150 users x $45 x 12), marketing-driven users included.
-      plg: { subArr: 142557, newFixedArr: 81000, newFixedMonths: 3, newPct: 30, newHoldMonths: 6, newStepPts: 2.5, newFloorPct: 25,
-             churnPct: 20, churnReductionPts: 5, churnReductionOn: false },
+      // Nov-Jan: fixed $70K/mo new PLG ARR before churn (~125 users x $45 x 12); marketing ARR comes on top.
+      plg: { subArr: 142557, newFixedArr: 70000, newFixedMonths: 3, newPct: 30, newHoldMonths: 6, newStepPts: 2.5, newFloorPct: 25,
+             churnPct: 20, lowChurnPct: 15, churnReductionOn: false }, // lower-churn switch off by default
       ai: { arr: 78300, growthPct: 5 },           // SAAS KPIs row 12, Oct '26
       // Existing SLG cash = (ARR - Jacobs) / 12 monthly; Jacobs is collected via the schedule below
       slg: { arr: 275403, churnPct: 5, expPct: 10, jacobsArr: 105000 },

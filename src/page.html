@@ -142,10 +142,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div><label title="Existing SLG ARR">Existing SLG ARR ($)</label><input class="fi" type="number" data-path="slg.arr" step="1000"></div>
     <div><label title="AI credits ARR">AI credits ARR ($)</label><input class="fi" type="number" data-path="ai.arr" step="1000"></div>
     <div><label title="PLG subscription ARR, excluding AI credits">PLG subscription ARR ($)</label><input class="fi" type="number" data-path="plg.subArr" step="1000"></div>
-    <div><label title="Fixed PLG new ARR per month, before churn, for the first months (e.g. 150 users x $45 x 12)">PLG new ARR, fixed ($ / mo)</label><input class="fi" type="number" data-path="plg.newFixedArr" step="1000"></div>
+    <div><label title="Fixed PLG new ARR per month, before churn, for the first months (e.g. 125 users x $45 x 12)">PLG new ARR, fixed ($ / mo)</label><input class="fi" type="number" data-path="plg.newFixedArr" step="1000"></div>
     <div><label title="Number of months (from Nov '26) that use the fixed dollar amount; 0 = use the % rule from the start">Fixed-$ PLG months</label><input class="fi" type="number" data-path="plg.newFixedMonths" step="1" data-int="1"></div>
     <div><label title="PLG new ARR, % of base per month, after the fixed-$ months">PLG new ARR after (% / mo)</label><input class="fi" type="number" data-path="plg.newPct" step="1"></div>
     <div><label title="PLG churn, % per month">PLG churn (% / mo)</label><input class="fi" type="number" data-path="plg.churnPct" step="1"></div>
+    <div><label title="Churn on the whole PLG base when the 'Lower PLG churn' switch is ticked">Lower PLG churn (% / mo)</label><input class="fi" type="number" data-path="plg.lowChurnPct" step="1"></div>
   </div>
 </details>
 
@@ -215,6 +216,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         set: function (q, v) { idx.forEach(function (i) { q.deals[i].on = v; }); } };
     });
     // Opening receivables are always collected (every scenario); described in the notes, no switch.
+    rev.push({ key: 'churn', group: 'revenue', name: 'Lower PLG churn', amount: P.plg.churnPct + '% → ' + P.plg.lowChurnPct + '%/mo',
+      on: P.plg.churnReductionOn, set: function (q, v) { q.plg.churnReductionOn = v; } });
     var costs = [
       { key: 'mkt', group: 'costs', name: 'Marketing push', amount: f$(P.marketing.monthlySpend) + '/mo × ' + P.marketing.months, on: P.marketing.on,
         set: function (q, v) { q.marketing.on = v; } }
@@ -438,9 +441,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var ar = coll('openingAr'), jac = coll('jacobs'), oc = P.openAiCredit, mk = P.marketing;
     var notes = [
       ['Cash', '= money in − costs, Anthropic and marketing (if on). No interest income or cost growth.'],
-      ['PLG', 'pays monthly and churns ' + churn + '%/mo. ' +
+      ['PLG', 'pays monthly and churns ' + churn + '%/mo on the whole PLG base' +
+        (g.churnReductionOn ? ' (lower-churn switch on; ' + g.churnPct + '% otherwise). ' : ' (' + g.lowChurnPct + '% with the lower-churn switch). ') +
         (g.newFixedMonths > 0 ? 'New ARR is a fixed ' + f$(g.newFixedArr) + '/mo before churn for ' + lbl(1) +
-          (g.newFixedMonths > 1 ? '–' + lbl(g.newFixedMonths) : '') + ' (incl. marketing-driven users), then ' : 'New ARR is ') +
+          (g.newFixedMonths > 1 ? '–' + lbl(g.newFixedMonths) : '') + ', then ' : 'New ARR is ') +
         g.newPct + '% of base' + (g.newHoldMonths > g.newFixedMonths ? ' until ' + lbl(g.newHoldMonths) : '') +
         (floorAt !== null ? ', then drops ' + g.newStepPts + ' pts/mo to ' + g.newFloorPct + '% (' + lbl(floorAt) + ').' : ', flat.') +
         (Math.min(g.newPct, g.newFloorPct) < churn ? ' Below the churn rate, PLG shrinks.' : '')],
@@ -456,10 +460,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         sch.map(function (x) { return '+' + x.offset; }).join('/') + ' months; renews at ' + ndr + '% after 12 months. Others = ' +
         others.map(function (d) { return f$(d.arr) + ' ' + lbl(d.closeMonth); }).join(' + ') + '.'],
       ['Marketing', f$(mk.monthlySpend) + '/mo × ' + mk.months + ' from ' + lbl(mk.startMonth) + '. ' +
-        (mk.startMonth + mk.months - 1 <= g.newFixedMonths
-          ? 'Its users are already inside the fixed PLG ' + f$(g.newFixedArr) + '/mo, so it adds cost here, not extra ARR.'
-          : 'Each $1 buys $' + mk.roi + ' of PLG ARR, which churns at the PLG rate' +
-            (g.newFixedMonths > 0 ? ' (none in the fixed-$ PLG months, where it is already counted).' : '.'))],
+        'Each $1 buys $' + mk.roi + ' of PLG ARR on top of the PLG new ARR above; it churns at the PLG rate.'],
       ['Collect opening receivables ' + f$(ar.payments.reduce(function (a, o) { return a + o.amount; }, 0)), 'in every scenario: ' + ar.payments.map(function (o) { return f$(o.amount); }).join('/') + ' ' + lbl(ar.payments[0].month) + '–' +
         lbl(ar.payments[ar.payments.length - 1].month) + ', on top of the ' + f$(P.openingCash) + '.'],
       [tgt, '= the first month-end whose ARR, rounded as below, is at or above ' + tgt + ', if cash hasn\'t run out. Amber: under ' + E.ALERT_MONTHS +
