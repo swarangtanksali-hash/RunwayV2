@@ -166,14 +166,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="hint" id="add-hint">Added lines: cash in full 60 days later, renewing yearly. Not saved: cleared on reload.</div>
     <div id="sw-costs"></div>
     <div class="sw" style="grid-template-columns:1fr;border-top:1px solid var(--border2)">
-      <div><b style="font-weight:500">Anthropic AI cost per month</b></div>
-      <div class="seg" id="ant">
+      <div style="display:flex;align-items:center;gap:12px"><b style="font-weight:500;white-space:nowrap">Anthropic AI cost per month</b>
+      <div class="seg" id="ant" style="flex:1;margin-top:0">
         <button type="button" data-v="75000">$75K today</button>
         <button type="button" data-v="50000">$50K</button>
         <button type="button" data-v="25000">$25K</button>
-      </div>
+      </div></div>
       <div class="eff" id="ant-eff" style="grid-column:1"></div>
-      <div class="hint" id="ant-credit" style="grid-column:1"></div>
     </div>
     </div>
     </div>
@@ -338,13 +337,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var base = P.anthropicBase, cur = P.costs.anthropic;
     var r = E.leverImpact(P, function (q) { q.costs.anthropic = cur; }, function (q) { q.costs.anthropic = base; });
     var chk = cur === base ? null : E.costCheck(P, cur, base);
-    document.getElementById('ant-eff').innerHTML = cur === base ? 'Today\'s run-rate. Pick another amount to see the effect.'
+    document.getElementById('ant-eff').innerHTML = cur === base ? ''
       : (cur > base ? '+' : '−') + f$(Math.abs(cur - base)) + '/mo vs today · ' + effectText(r) +
         (chk ? '<div class="chk">Check: ' + esc(f$(chk.extra)) + '/mo × ' + chk.months.toFixed(1) + ' mo = ' + esc(f$(chk.extra * chk.months)) +
           ' ÷ ' + esc(f$(chk.burn)) + ' net burn (' + esc(lbl(chk.burnMonth)) + ') ≈ ' + chk.days + ' days</div>' : '');
-    var oc = P.openAiCredit;
-    setText('ant-credit', oc.on ? 'OpenAI credits received: ' + f$(oc.total) + ' set off once against ' + lbl(oc.startMonth) +
-      (oc.months > 1 ? '–' + lbl(oc.startMonth + oc.months - 1) : '') + ' AI cost (one-off).' : '');
   }
   function renderPresets() {
     var cur = E.matchScenario(P);
