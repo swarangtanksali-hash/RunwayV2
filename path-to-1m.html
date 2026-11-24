@@ -65,7 +65,9 @@ h1{font-size:18px;font-weight:600;letter-spacing:.01em}
 .sw{display:grid;grid-template-columns:20px 1fr auto;gap:0 10px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border2)}
 .sw:last-child{border-bottom:none}
 .sw.hl{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:6px;padding:4px 8px;margin:2px -8px}
-.sw.hl label{color:var(--as)}
+.sw.hl label{color:var(--as);white-space:nowrap}
+.seg button{white-space:nowrap}
+#sal{margin-top:0;width:240px}
 .sw input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--blu)}
 .sw label{cursor:pointer;font-weight:500}
 .sw .amt{font-family:var(--mono);font-size:13px;color:var(--dim);text-align:right}
@@ -168,7 +170,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="hint" id="add-hint">Added lines: cash in full 60 days later, renewing yearly. Not saved: cleared on reload.</div>
     <div id="sw-costs"></div>
     <div class="sw" style="grid-template-columns:1fr;border-top:1px solid var(--border2)">
-      <div style="display:flex;align-items:center;gap:12px"><b style="font-weight:500;white-space:nowrap">Anthropic AI cost per month</b>
+      <div style="display:flex;align-items:center;gap:12px"><b style="font-weight:500;white-space:nowrap">Anthropic AI cost p.m.</b>
       <div class="seg" id="ant" style="margin-top:0;margin-left:auto;width:240px">
         <button type="button" data-v="75000">$75K</button>
         <button type="button" data-v="50000">$50K</button>
@@ -671,9 +673,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   // OpenAI credits are always on (not a scenario switch). Anthropic $75K in every preset (Nov 24 '26).
 // Salary appraisal is on in every preset; funding is off in every preset (ticking it = Custom).
   var SCENARIOS = [
-    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
-    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
-    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false }
+    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false },
+    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false },
+    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false }
   ];
   function scenarioById(id) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].id === id) return SCENARIOS[i];
@@ -685,6 +687,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     q.costs.anthropic = s.anthropic;
     q.openAiCredit.on = s.openAi;
     q.salary.on = s.salary;
+    q.salary.monthly = s.salaryMonthly;   // $12.5K in every preset; $15K / $17.5K = Custom (Nov 24 '26)
     q.funding.on = s.funding;
   }
   function applyScenario(p, id) { var q = clone(p); setSwitches(q, scenarioById(id)); return q; }
@@ -738,6 +741,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   'use strict';
   var E = window.RunwayEngine;
   var DEFAULT_SCENARIO = 'base';
+  var SALARY_OPTIONS = [12500, 15000, 17500]; // $/mo; presets use $12.5K
   var P = E.applyScenario(E.defaults(), DEFAULT_SCENARIO);
   var DEC27 = E.monthIndex(P.start, 2027, 11);
   var CASH_CLR = '#f59e0b'; // amber, stands out against the blue ARR bars
@@ -828,9 +832,14 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
             closeOptions(P.deals[s.closeSelect].closeMonth, s.removeId ? E.CUSTOM_MAX_MONTH : 6) + '</select>'
           : s.tranches ? ' <span style="color:var(--muted);font-size:12px">' + esc(s.tranches) + '</span>' : '';
         if (s.removeId) close += ' <button type="button" class="rm" title="Remove this line" data-remove="' + esc(s.removeId) + '">×</button>';
+        // Salary appraisal: amount picked with pills ($12.5K default in every preset), like the Anthropic selector
+        var amt = s.key === 'salary'
+          ? '<div class="seg" id="sal">' + SALARY_OPTIONS.map(function (v) {
+              return '<button type="button" data-sal="' + v + '"' + (v === P.salary.monthly ? ' class="on"' : '') + '>' + f$(v) + '</button>';
+            }).join('') + '</div>'
+          : '<span class="amt">' + esc(s.amount) + '</span>';
         return '<div class="sw' + (s.key === 'salary' ? ' hl' : '') + '"><input type="checkbox" id="sw-' + s.key + '"' + (s.on ? ' checked' : '') + '>' +
-          '<label for="sw-' + s.key + '">' + esc(s.name) + close + '</label>' +
-          '<span class="amt">' + esc(s.amount) + '</span>' +
+          '<label for="sw-' + s.key + '">' + esc(s.name) + close + '</label>' + amt +
           '<div class="eff" id="eff-' + s.key + '"></div></div>';
       }).join('');
     });
@@ -839,7 +848,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         var v = e.target.checked; update(function (q) { s.set(q, v); });
       });
       var r = E.leverImpact(P, function (q) { s.set(q, true); }, function (q) { s.set(q, false); });
-      document.getElementById('eff-' + s.key).innerHTML = effectText(r);
+      document.getElementById('eff-' + s.key).innerHTML = (s.key === 'salary' ? 'From ' + esc(lbl(P.salary.startMonth)) + ' · ' : '') + effectText(r);
+    });
+    document.querySelectorAll('#sal button').forEach(function (b) {
+      b.addEventListener('click', function () { var v = Number(b.dataset.sal); update(function (q) { q.salary.monthly = v; }); });
     });
     document.querySelectorAll('button[data-remove]').forEach(function (b) {
       b.addEventListener('click', function (e) { e.preventDefault(); P = E.removeCustomDeal(P, b.dataset.remove); refresh(); });

@@ -554,12 +554,13 @@ test('scenarios set exactly the agreed switches and nothing else', () => {
     ant: q.costs.anthropic,
     openAi: q.openAiCredit.on,
     salary: q.salary.on,
+    salaryMonthly: q.salary.monthly,
     funding: q.funding.on
   });
   const expected = {
-    bear: { deals: ['lt', 'others'], ar: true, ant: 75000, openAi: true, salary: true, funding: false },
-    base: { deals: ['lt', 'carwash', 'others'], ar: true, ant: 75000, openAi: true, salary: true, funding: false },
-    bull: { deals: ['itc', 'lt', 'carwash', 'others'], ar: true, ant: 75000, openAi: true, salary: true, funding: false }
+    bear: { deals: ['lt', 'others'], ar: true, ant: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false },
+    base: { deals: ['lt', 'carwash', 'others'], ar: true, ant: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false },
+    bull: { deals: ['itc', 'lt', 'carwash', 'others'], ar: true, ant: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false }
   };
   assert.deepEqual(E.SCENARIOS.map(s => s.id), ['bear', 'base', 'bull']);
   for (const id of Object.keys(expected)) {
@@ -569,7 +570,7 @@ test('scenarios set exactly the agreed switches and nothing else', () => {
     // assumptions untouched: only switch fields differ
     const strip = x => { const c = E.clone(x); c.deals.forEach(d => { d.on = false; }); c.collections.forEach(k => { k.on = true; });
       c.costs.anthropic = 0; c.openAiCredit.on = false;
-      c.salary.on = false; c.funding.on = false; return JSON.stringify(c); };
+      c.salary.on = false; c.salary.monthly = 0; c.funding.on = false; return JSON.stringify(c); };
     assert.equal(strip(q), strip(p), id + ' changed an assumption');
   }
   // Bull turns on both "Others" tranches
@@ -590,6 +591,26 @@ test('matchScenario returns null (Custom) once a switch differs', () => {
   assert.equal(E.matchScenario(q), null);
   q.funding.on = false; q.salary.on = false;          // salary is on in every preset
   assert.equal(E.matchScenario(q), null);
+  q.salary.on = true; q.salary.monthly = 15000;        // every preset is $12.5K/mo; $15K = Custom
+  assert.equal(E.matchScenario(q), null);
+  assert.equal(E.applyScenario(q, 'base').salary.monthly, 12500); // picking a preset resets it
+});
+
+test('salary appraisal options: $15K and $17.5K/mo from Jan-27, cumulative, never touch ARR (by hand)', () => {
+  const base = E.simulate(D(), H);
+  for (const amt of [15000, 17500]) {
+    const p = D(); p.salary.on = true; p.salary.monthly = amt;
+    E.simulate(p, H).forEach((r, i) => {
+      close(r.outSalary, r.m >= 3 ? amt : 0, `${amt} salary m${r.m}`);
+      close(base[i].cashClose - r.cashClose, amt * Math.max(r.m - 2, 0), `${amt} cum m${r.m}`);
+      close(r.arrTotal, base[i].arrTotal, `${amt} ARR m${r.m}`);
+    });
+  }
+  // Base at $15K: Jan-Mar salary 3 x 15K = 45K, so cash at the Mar-27 $1M month is 7.5K below the pinned 1,203,137
+  const p = E.applyScenario(D(), 'base'); p.salary.monthly = 15000;
+  const a = E.analyse(p);
+  assert.equal(a.hit, 5);
+  close(a.cashAtHit, 1203137.0244395833 - 7500, 'Base at $15K');
 });
 
 // ── $1M rounding rule, preset headline numbers, hand-calc sense checks (Nov 11 audit) ──

@@ -454,9 +454,9 @@
   // OpenAI credits are always on (not a scenario switch). Anthropic $75K in every preset (Nov 24 '26).
 // Salary appraisal is on in every preset; funding is off in every preset (ticking it = Custom).
   var SCENARIOS = [
-    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
-    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
-    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false }
+    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false },
+    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false },
+    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, salary: true, salaryMonthly: 12500, funding: false }
   ];
   function scenarioById(id) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].id === id) return SCENARIOS[i];
@@ -468,6 +468,7 @@
     q.costs.anthropic = s.anthropic;
     q.openAiCredit.on = s.openAi;
     q.salary.on = s.salary;
+    q.salary.monthly = s.salaryMonthly;   // $12.5K in every preset; $15K / $17.5K = Custom (Nov 24 '26)
     q.funding.on = s.funding;
   }
   function applyScenario(p, id) { var q = clone(p); setSwitches(q, scenarioById(id)); return q; }
