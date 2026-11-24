@@ -29,6 +29,16 @@ h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .answer .big{font-size:20px;font-weight:600;line-height:1.35}
 .answer.ok .big{color:var(--gs)}.answer.warn .big{color:var(--as)}.answer.bad .big{color:var(--rs)}
 .answer .small{font-size:13px;color:var(--dim);margin-top:4px}
+.today{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:6px}
+.today .tile{background:var(--bg3)}
+.today .tile .val{font-size:20px}
+.bridge{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px}
+.bridge .row{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:4px 0}
+.bridge .row + .row{border-top:1px solid var(--border2)}
+.bridge .k{color:var(--muted);font-size:12px;padding-top:1px}
+.bridge .v{font-family:var(--mono);color:var(--dim)}
+.bridge .v b{color:var(--text);font-weight:600}
+.bridge .up{color:var(--gs)}.bridge .dn{color:var(--rs)}
 
 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
 .tile{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
@@ -93,8 +103,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .how li{margin:0 0 6px 18px;color:var(--dim);font-size:13px}
 
 @media (max-width:700px){.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:1000px){.main{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){body{padding:16px}.tiles{grid-template-columns:1fr 1fr}.tile .val{font-size:19px}.answer .big{font-size:17px}}
+@media (max-width:1000px){.main{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.today{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){body{padding:16px}.tiles{grid-template-columns:1fr 1fr}.tile .val{font-size:19px}.today{grid-template-columns:1fr 1fr}.answer .big{font-size:17px}}
 </style>
 </head>
 <body>
@@ -102,6 +112,17 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 <h1>Path to $1M ARR</h1>
 <div class="sub" id="sub"></div>
+
+<div class="group" style="margin-top:14px">Today · Oct '26 month-end (actuals, same in every scenario)</div>
+<div class="today">
+  <div class="tile"><div class="lbl">Cash</div><div class="val" id="d-cash"></div><div class="note" id="d-cash-n"></div></div>
+  <div class="tile"><div class="lbl">Net burn / month</div><div class="val" id="d-burn"></div><div class="note" id="d-burn-n"></div></div>
+  <div class="tile"><div class="lbl">Runway at today's burn</div><div class="val" id="d-rw"></div><div class="note" id="d-rw-n"></div></div>
+  <div class="tile"><div class="lbl">ARR</div><div class="val" id="d-arr"></div><div class="note" id="d-arr-n"></div></div>
+  <div class="tile"><div class="lbl">Gap to $1M ARR</div><div class="val" id="d-gap"></div><div class="note" id="d-gap-n"></div></div>
+</div>
+
+<div class="group" style="margin-top:18px">Where this scenario takes us</div>
 
 <div class="answer" id="answer"><div class="big" id="answer-big"></div><div class="small" id="answer-small"></div></div>
 
@@ -111,6 +132,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div class="tile"><div class="lbl">Runway left then</div><div class="val" id="t-rw"></div><div class="note" id="t-rw-n"></div></div>
   <div class="tile"><div class="lbl">Cash runs out</div><div class="val" id="t-out"></div><div class="note" id="t-out-n"></div></div>
 </div>
+
+<div class="bridge" id="bridge"></div>
 
 <div class="main">
   <div class="card">
@@ -332,7 +355,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   // ── Answer + tiles ────────────────────────────────────────────────────────
   function renderAnswer(a) {
     var p = P, box = document.getElementById('answer');
-    setText('sub', 'Starting point: Oct \'26 month-end · ' + f$(p.openingCash) + ' cash · ' + f$(E.openingArr(p)) + ' ARR · target ' + f$(p.targetArr) + ' ARR');
+    setText('sub', 'Where we are today, and when we reach ' + f$(p.targetArr) + ' ARR');
     var out = outMonth(a.runout), big, small;
     if (a.status === 'ok') {
       box.className = 'answer ok';
@@ -366,6 +389,41 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     setText('t-out', out || 'Self-sustaining');
     document.getElementById('t-out').style.color = a.runout !== null && a.runout < 12 ? 'var(--rs)' : 'var(--text)';
     setText('t-out-n', a.runout !== null ? months(a.runout) + ' (' + E.monthsToDays(a.runout) + ' days) from Oct \'26 month-end' : '');
+  }
+
+  // ── Today strip: fixed starting position (does not move with the switches) ──
+  function renderToday() {
+    var t = E.today(P);
+    setText('d-cash', f$(t.cash));
+    setText('d-cash-n', '+ ' + f$(t.receivables) + ' receivables due ' + lbl(1) + '–' + lbl(3));
+    setText('d-burn', f$(t.netBurn));
+    setText('d-burn-n', f$(t.costs) + ' costs − ' + f$(t.revenue) + ' monthly revenue');
+    setText('d-rw', months(t.runway));
+    setText('d-rw-n', t.runway === Infinity ? 'revenue covers costs' : '(cash + receivables) ÷ net burn · ' + outMonth(t.runway) + ', no growth, no deals');
+    setText('d-arr', f$(t.arr));
+    setText('d-arr-n', 'PLG ' + f$(t.plgArr) + ' · AI ' + f$(t.aiArr) + ' · SLG ' + f$(t.slgArr));
+    setText('d-gap', t.gap > 0 ? f$(t.gap) : 'None');
+    setText('d-gap-n', t.gap > 0 ? 'ARR still to add to reach ' + f$(P.targetArr) : 'already at target');
+  }
+
+  // ── Bridge: today → the $1M month (or, if not reached, the month cash runs out / Dec '27) ──
+  function part(name, v) {
+    if (Math.abs(v) < 0.5) return '';
+    return ' · ' + esc(name) + ' <span class="' + (v > 0 ? 'up' : 'dn') + '">' + (v > 0 ? '+' : '') + f$(v) + '</span>';
+  }
+  function renderBridge(a) {
+    var box = document.getElementById('bridge');
+    var end = reached(a) ? a.hit : Math.min(a.runout !== null ? Math.max(Math.ceil(a.runout), 1) : DEC27, DEC27);
+    if (!end) { box.style.display = 'none'; return; }
+    box.style.display = '';
+    var b = E.bridge(P, end), A = b.arr, C = b.cash;
+    var to = reached(a) ? 'to ' + lbl(end) + ' ($1M month)' : 'to ' + lbl(end);
+    box.innerHTML =
+      '<div class="row"><div class="k">ARR</div><div class="v"><b>' + f$(A.start) + ' → ' + f$(A.end) + '</b> ' + esc(to) +
+        part('PLG', A.plg) + part('AI', A.ai) + part('SLG', A.slg) + part('Deals', A.deals) + '</div></div>' +
+      '<div class="row"><div class="k">Cash</div><div class="v"><b>' + f$(C.start) + ' → ' + f$(C.end) + '</b> ' + esc(to) +
+        part('Monthly revenue', C.revenue) + part('Deal cash', C.deals) + part('Receivables & Jacobs', C.oneOff) +
+        part('Funding', C.funding) + part('Costs (net of OpenAI credit)', C.costs) + part('Salary appraisal', C.salary) + '</div></div>';
   }
 
   // ── Window used by the chart: Nov '26–Dec '27, stopping at the month cash runs out ──
@@ -506,7 +564,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
   function refresh() {
     var a = E.analyse(P);
+    renderToday();
     renderAnswer(a);
+    renderBridge(a);
     renderPresets();
     renderSwitches();
     updateCharts(a);

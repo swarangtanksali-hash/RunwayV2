@@ -286,6 +286,54 @@
 
   function clone(p) { return JSON.parse(JSON.stringify(p)); }
 
+  // ── Today (Oct '26 month-end): fixed starting position, independent of switches ──
+  // Net burn = today's recurring costs (base + today's Anthropic) - today's recurring monthly revenue
+  // (PLG + AI + SLG excluding Jacobs, which pays lump sums). Opening receivables are one-off,
+  // so they are added to cash, not netted off burn. Runway = (cash + receivables) / net burn.
+  function today(p) {
+    validate(p);
+    var costs = p.costs.base + p.anthropicBase;
+    var revenue = (p.plg.subArr + p.ai.arr + p.slg.arr - p.slg.jacobsArr) / 12;
+    var ar = (p.collections || []).filter(function (c) { return c.id === 'openingAr'; })[0];
+    var receivables = ar ? ar.payments.reduce(function (a, o) { return a + o.amount; }, 0) : 0;
+    var netBurn = costs - revenue, arr = openingArr(p);
+    return {
+      cash: p.openingCash, receivables: receivables, costs: costs, revenue: revenue, netBurn: netBurn,
+      runway: netBurn > 0 ? (p.openingCash + receivables) / netBurn : Infinity,
+      arr: arr, plgArr: p.plg.subArr, aiArr: p.ai.arr, slgArr: p.slg.arr,
+      gap: Math.max(p.targetArr - arr, 0)
+    };
+  }
+
+  // ── Bridge from today to the close of month `end`: what moves ARR and cash ──
+  // Parts add up exactly: arr.start + plg + ai + slg + deals = arr.end; same for cash.
+  function bridge(p, end) {
+    intIn(end, 1, EXT_HORIZON, 'bridge end month');
+    var rows = simulate(p, end), last = rows[end - 1];
+    function sum(fn) { return rows.reduce(function (a, r) { return a + fn(r); }, 0); }
+    return {
+      end: end,
+      arr: {
+        start: openingArr(p),
+        plg: last.arrPlg - p.plg.subArr,
+        ai: last.arrAi - p.ai.arr,
+        slg: last.arrSlgBase - p.slg.arr + last.arrSlgOrg,
+        deals: last.arrDeals,
+        end: last.arrTotal
+      },
+      cash: {
+        start: p.openingCash,
+        revenue: sum(function (r) { return r.inPlg + r.inAi + r.inSlgBase + r.inSlgOrg; }),
+        deals: sum(function (r) { return r.inDeals; }),
+        oneOff: sum(function (r) { return r.inOneOff; }),
+        funding: sum(function (r) { return r.inFunding; }),
+        costs: -sum(function (r) { return r.outBase + r.outAnthropic - r.creditOffset; }),
+        salary: -sum(function (r) { return r.outSalary; }),
+        end: last.cashClose
+      }
+    };
+  }
+
   // $1M counts as reached only when it happens before cash runs out.
   function reached(a) { return a.status === 'ok' || a.status === 'low-runway'; }
 
@@ -456,6 +504,8 @@
     meetsTarget: meetsTarget,
     costCheck: costCheck,
     analyse: analyse,
+    today: today,
+    bridge: bridge,
     leverImpact: leverImpact,
     reached: reached,
     monthsToDays: monthsToDays,

@@ -679,3 +679,52 @@ test('sense check: removing a deal delays $1M by about (its ARR - margin above $
     });
   });
 });
+
+test('today strip: Oct-26 position by hand, same whatever the switches', () => {
+  // costs 250K + 75K; revenue (PLG 142,557 + AI 78,300 + SLG 275,403 - Jacobs 105,000) / 12 = 32,605
+  const exp = { cash: 2316098, receivables: 100000, costs: 325000, revenue: 32605, netBurn: 292395,
+                runway: 2416098 / 292395, arr: 496260, gap: 503740 };
+  const t = E.today(D());
+  for (const k of Object.keys(exp)) close(t[k], exp[k], k);
+  assert.ok(Math.abs(t.runway - 8.2631) < 1e-4, 'runway ~8.3 months');
+  const q = E.applyScenario(D(), 'bull');
+  q.costs.anthropic = 25000; q.funding.on = true; q.salary.on = true;
+  q.collections.forEach(c => { c.on = false; });
+  const t2 = E.today(q);
+  for (const k of Object.keys(exp)) close(t2[k], exp[k], 'switches must not move ' + k);
+});
+
+test('bridge: Base to Mar-27 by hand, and it lands on the headline cash', () => {
+  const p = E.applyScenario(D(), 'base');
+  const b = E.bridge(p, 5);
+  // ARR: deals L&T 150K + Car Wash 100K + Others 75K; SLG = organic Mar-27 cohort 10% x 275,403
+  close(b.arr.deals, 325000, 'deal ARR');
+  close(b.arr.slg, 27540.3, 'SLG ARR');
+  // Cash: costs 5 x 325K - 50K OpenAI credit; salary Jan-Mar 3 x 12.5K; receivables 100K + Jacobs Jan 42K
+  // deal cash Feb 75K + 50K + 18.75K, Mar 18.75K (Others Jan tranche)
+  close(b.cash.costs, -1575000, 'costs');
+  close(b.cash.salary, -37500, 'salary');
+  close(b.cash.oneOff, 142000, 'receivables + Jacobs');
+  close(b.cash.deals, 162500, 'deal cash');
+  close(b.cash.funding, 0, 'funding');
+  const a = E.analyse(p);
+  assert.equal(a.hit, 5);
+  close(b.cash.end, a.cashAtHit, 'bridge ends on the headline cash');
+});
+
+test('bridge parts always add up to the end figures (every preset, every month, funding on/off)', () => {
+  for (const id of ['bear', 'base', 'bull']) {
+    for (const fund of [false, true]) {
+      const p = E.applyScenario(D(), id); p.funding.on = fund;
+      const rows = E.simulate(p, 36);
+      for (let end = 1; end <= 36; end++) {
+        const b = E.bridge(p, end), A = b.arr, C = b.cash;
+        close(A.start + A.plg + A.ai + A.slg + A.deals, A.end, `${id} ARR m${end}`);
+        close(A.end, rows[end - 1].arrTotal, `${id} ARR vs simulate m${end}`);
+        close(C.start + C.revenue + C.deals + C.oneOff + C.funding + C.costs + C.salary, C.end, `${id} cash m${end}`);
+        close(C.end, rows[end - 1].cashClose, `${id} cash vs simulate m${end}`);
+      }
+    }
+  }
+  for (const bad of [0, 1.5, -1, E.EXT_HORIZON + 1, NaN]) assert.throws(() => E.bridge(D(), bad), String(bad));
+});
