@@ -17,22 +17,22 @@
   --mono:'IBM Plex Mono','Courier New',monospace;--sans:'IBM Plex Sans',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:20px 24px 40px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:20px 76px 40px}
 .wrap{margin:0 auto}
 h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .sub{color:var(--muted);font-size:13px;margin-top:2px}
 
-.answer{margin:16px 0 12px;border-radius:8px;padding:16px 20px;border:1px solid}
+.answer{margin:8px 0 10px;border-radius:8px;padding:10px 16px;border:1px solid}
 .answer.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.4)}
 .answer.warn{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.5)}
 .answer.bad{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.5)}
-.answer .big{font-size:20px;font-weight:600;line-height:1.35}
+.answer .big{font-size:17px;font-weight:600;line-height:1.35}
 .answer.ok .big{color:var(--gs)}.answer.warn .big{color:var(--as)}.answer.bad .big{color:var(--rs)}
 .answer .small{font-size:13px;color:var(--dim);margin-top:4px}
 .today{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:6px}
 .today .tile{background:var(--bg3)}
-.today .tile .val{font-size:20px}
-.bridge{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px}
+.today .tile .val{font-size:18px}
+.bridge{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:13px}
 .bridge .row{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:4px 0}
 .bridge .row + .row{border-top:1px solid var(--border2)}
 .bridge .k{color:var(--muted);font-size:12px;padding-top:1px}
@@ -40,10 +40,13 @@ h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .bridge .v b{color:var(--text);font-weight:600}
 .bridge .up{color:var(--gs)}.bridge .dn{color:var(--rs)}
 
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
-.tile{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.split{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);gap:16px;align-items:start}
+.pin{position:sticky;top:12px}
+.pin .chart-box{height:calc(100vh - 90px)!important;min-height:380px}
+.tile{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
 .tile .lbl{font-size:12px;color:var(--muted)}
-.tile .val{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1.2;margin-top:2px}
+.tile .val{font-family:var(--mono);font-size:20px;font-weight:600;line-height:1.2;margin-top:2px}
 .tile .note{font-size:12px;color:var(--muted);margin-top:2px}
 
 .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;align-items:start;border-top:1px solid var(--border);margin-top:8px}
@@ -109,7 +112,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .how li{margin:0 0 6px 18px;color:var(--dim);font-size:13px}
 
 @media (max-width:700px){.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:1000px){.cols{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.today{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1000px){body{padding:20px 24px 40px}.split{grid-template-columns:1fr}.pin{position:static}.pin .chart-box{height:420px!important}.cols{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.today{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:520px){body{padding:16px}.tiles{grid-template-columns:1fr 1fr}.tile .val{font-size:19px}.today{grid-template-columns:1fr 1fr}.answer .big{font-size:17px}}
 </style>
 </head>
@@ -128,7 +131,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div class="tile"><div class="lbl">Gap to $1M ARR</div><div class="val" id="d-gap"></div><div class="note" id="d-gap-n"></div></div>
 </div>
 
-<div class="group" style="margin-top:18px">Where this scenario takes us</div>
+<div class="split">
+<div>
+<div class="group" style="margin-top:14px">Where this scenario takes us</div>
 
 <div class="answer" id="answer"><div class="big" id="answer-big"></div><div class="small" id="answer-small"></div></div>
 
@@ -171,10 +176,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     </div>
     </div>
 </div>
+</div>
 
-<div class="card">
+<div class="card pin" style="margin-top:14px">
   <h2>$1Mn ARR Target &amp; Cash Balance</h2>
   <div class="chart-box" style="height:460px"><canvas id="combo-chart"></canvas></div>
+</div>
 </div>
 
 <details>
