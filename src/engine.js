@@ -23,6 +23,8 @@
  *  - SLG deals: ARR counted from the end of the close month. Cash follows the schedule
  *    (offsets in months from close, % of contract value). Each deal renews every 12 months
  *    at value x NDR, re-collected on the same relative schedule.
+ *  - Salary appraisal: extra monthly cost from startMonth onward (cash only, no ARR effect).
+ *  - Funding: one-off cash inflow in its month (cash only, no ARR effect).
  *  - Runway: fractional month where cash first reaches <= 0, interpolated inside that month.
  *  - $1M reached: first month whose closing total ARR, rounded to the nearest arrRounding ($10K),
  *    is >= target, i.e. ARR >= target - arrRounding / 2 ($995,000 counts as $1M).
@@ -86,7 +88,6 @@
     nonNeg(p.plg.newFloorPct, 'plg.newFloorPct');
     if (p.plg.newFloorPct > p.plg.newPct) throw new RangeError('plg.newFloorPct cannot exceed plg.newPct');
     nonNeg(p.plg.churnPct, 'plg.churnPct');
-    nonNeg(p.plg.lowChurnPct, 'plg.lowChurnPct');
     nonNeg(p.ai.arr, 'ai.arr');
     fin(p.ai.growthPct, 'ai.growthPct');
     if (p.ai.growthPct <= -100) throw new RangeError('ai.growthPct must be > -100');
@@ -117,6 +118,11 @@
       intIn(p.slgGrowth.startMonth, 1, EXT_HORIZON, 'slgGrowth.startMonth');
       intIn(p.slgGrowth.collectLag, 0, 11, 'slgGrowth.collectLag');
     }
+    var sal = p.salary;
+    nonNeg(sal.monthly, 'salary.monthly');
+    intIn(sal.startMonth, 1, EXT_HORIZON, 'salary.startMonth');
+    nonNeg(p.funding.amount, 'funding.amount');
+    intIn(p.funding.month, 1, EXT_HORIZON, 'funding.month');
     var mk = p.marketing;
     nonNeg(mk.monthlySpend, 'marketing.monthlySpend');
     nonNeg(mk.roi, 'marketing.roi');
@@ -126,8 +132,8 @@
   }
 
   function plgChurnRate(p) {
-    // "Lower PLG churn" switch: the whole PLG base (and marketing ARR) churns at lowChurnPct instead.
-    return (p.plg.churnReductionOn ? p.plg.lowChurnPct : p.plg.churnPct) / 100;
+    // Whole PLG base (and marketing ARR) churns at churnPct. (Lower-churn switch removed Nov 24 '26.)
+    return p.plg.churnPct / 100;
   }
   // PLG new ARR % of the opening base in month m (held, then stepped down to a floor).
   // Fixed-dollar PLG new ARR applies in months 1..newFixedMonths.
@@ -198,14 +204,17 @@
         c.payments.forEach(function (o) { if (o.month === m) inOneOff += o.amount; });
       });
 
+      var inFunding = p.funding.on && m === p.funding.month ? p.funding.amount : 0;
+      var outSalary = p.salary.on && m >= p.salary.startMonth ? p.salary.monthly : 0;
+
       var mktActive = !!mk.on && m >= mk.startMonth && m < mk.startMonth + mk.months;
       var outBase = p.costs.base, outAnthropic = p.costs.anthropic, outMkt = mktActive ? mk.monthlySpend : 0;
       // OpenAI credits offset inference cost, spread evenly; never more than that month's inference cost.
       var creditActive = !!oc.on && m >= oc.startMonth && m < oc.startMonth + oc.months;
       var creditOffset = creditActive ? Math.min(oc.total / oc.months, outAnthropic) : 0;
 
-      var inflow = inPlg + inMkt + inAi + inSlgBase + inDeals + inSlgOrg + inOneOff;
-      var outflow = outBase + outAnthropic - creditOffset + outMkt;
+      var inflow = inPlg + inMkt + inAi + inSlgBase + inDeals + inSlgOrg + inOneOff + inFunding;
+      var outflow = outBase + outAnthropic - creditOffset + outMkt + outSalary;
       cash = cashOpen + inflow - outflow;
 
       // End-of-month ARR movements
@@ -217,9 +226,9 @@
       rows.push({
         m: m,
         cashOpen: cashOpen,
-        inPlg: inPlg, inMkt: inMkt, inAi: inAi, inSlgBase: inSlgBase, inDeals: inDeals, inSlgOrg: inSlgOrg, inOneOff: inOneOff,
+        inPlg: inPlg, inMkt: inMkt, inAi: inAi, inSlgBase: inSlgBase, inDeals: inDeals, inSlgOrg: inSlgOrg, inOneOff: inOneOff, inFunding: inFunding,
         inflow: inflow,
-        outBase: outBase, outAnthropic: outAnthropic, creditOffset: creditOffset, outMkt: outMkt,
+        outBase: outBase, outAnthropic: outAnthropic, creditOffset: creditOffset, outMkt: outMkt, outSalary: outSalary,
         outflow: outflow,
         net: inflow - outflow,
         cashClose: cash,
@@ -339,14 +348,14 @@
       targetArr: 1000000,
       arrRounding: 10000,                         // $1M test uses ARR rounded to the nearest $10K (user, Nov 11)
       openingCash: 2316098,                       // FS Cash Burn MvM, Oct '26
-      costs: { base: 250000, anthropic: 50000 },  // anthropic: 50K base; selector 80K / 25K
-      anthropicBase: 50000,
-      // OpenAI credits: $50K off inference cost, 50% Nov / 50% Dec
-      openAiCredit: { on: true, total: 50000, startMonth: at(2026, 10), months: 2 },
+      costs: { base: 250000, anthropic: 75000 },  // anthropic: 75K in every preset (Nov 24); selector 50K / 25K
+      anthropicBase: 75000,
+      // OpenAI credits received: $50K set off once against Dec '26 inference cost (Nov 24)
+      openAiCredit: { on: true, total: 50000, startMonth: at(2026, 11), months: 1 },
       // PLG new ARR: 30% of base for 6 months (Nov-Apr), then -2.5 pts/mo to a 25% floor (from Jun '27)
       // Nov-Jan: fixed $70K/mo new PLG ARR before churn (~125 users x $45 x 12); marketing ARR comes on top.
       plg: { subArr: 142557, newFixedArr: 70000, newFixedMonths: 3, newPct: 30, newHoldMonths: 6, newStepPts: 2.5, newFloorPct: 25,
-             churnPct: 20, lowChurnPct: 15, churnReductionOn: false }, // lower-churn switch off by default
+             churnPct: 20 },
       ai: { arr: 78300, growthPct: 5 },           // SAAS KPIs row 12, Oct '26
       // Existing SLG cash = (ARR - Jacobs) / 12 monthly; Jacobs is collected via the schedule below
       slg: { arr: 275403, churnPct: 5, expPct: 10, jacobsArr: 105000 },
@@ -365,21 +374,26 @@
       ],
       deals: [
         deal('itc', 'itc', 'ITC', 75000, at(2027, 0)),               // Jan '27
-        deal('lt', 'lt', 'L&T', 150000, at(2026, 10)),               // Nov '26
+        deal('lt', 'lt', 'L&T', 150000, at(2026, 11)),               // Dec '26 (moved from Nov, Nov 24)
         deal('carwash', 'carwash', 'Car Wash', 100000, at(2026, 11)), // Dec '26
-        deal('others-1', 'others', 'Others', 50000, at(2026, 11)),    // Dec '26
-        deal('others-2', 'others', 'Others', 25000, at(2027, 0))      // Jan '27
+        deal('others-1', 'others', 'Others', 37500, at(2026, 11)),    // Dec '26 (50%)
+        deal('others-2', 'others', 'Others', 37500, at(2027, 0))      // Jan '27 (50%)
       ],
-      marketing: { on: false, monthlySpend: 35000, startMonth: at(2026, 10), months: 3, roi: 1 }
+      marketing: { on: false, monthlySpend: 35000, startMonth: at(2026, 10), months: 3, roi: 1 },
+      // Salary appraisal: +$12.5K/mo ($150K/yr) from Jan '27; on in every preset (switched by setSwitches)
+      salary: { on: false, monthly: 12500, startMonth: at(2027, 0) },
+      // Funding round: $5M cash in Mar '27; off in every preset, a checkbox only
+      funding: { on: false, amount: 5000000, month: at(2027, 2) }
     };
   }
 
   // ── Preset scenarios: each sets every switch; assumptions are left alone ──
-  // OpenAI credits are always on (not a scenario switch); lower PLG churn is off in every case.
+  // OpenAI credits are always on (not a scenario switch). Anthropic $75K in every preset (Nov 24 '26).
+// Salary appraisal is on in every preset; funding is off in every preset (ticking it = Custom).
   var SCENARIOS = [
-    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, churnReduction: false, anthropic: 80000, openAi: true, marketing: false },
-    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, churnReduction: false, anthropic: 50000, openAi: true, marketing: false },
-    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, churnReduction: false, anthropic: 25000, openAi: true, marketing: true }
+    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, marketing: false, salary: true, funding: false },
+    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, marketing: false, salary: true, funding: false },
+    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, marketing: true, salary: true, funding: false }
   ];
   function scenarioById(id) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].id === id) return SCENARIOS[i];
@@ -388,10 +402,11 @@
   function setSwitches(q, s) {
     q.deals.forEach(function (d) { d.on = s.deals.indexOf(d.group) !== -1; });
     q.collections.forEach(function (c) { if (c.id === 'openingAr') c.on = s.openingAr; });
-    q.plg.churnReductionOn = s.churnReduction;
     q.costs.anthropic = s.anthropic;
     q.openAiCredit.on = s.openAi;
     q.marketing.on = s.marketing;
+    q.salary.on = s.salary;
+    q.funding.on = s.funding;
   }
   function applyScenario(p, id) { var q = clone(p); setSwitches(q, scenarioById(id)); return q; }
   // id of the preset whose switches exactly match p, else null ("Custom").

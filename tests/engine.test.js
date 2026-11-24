@@ -30,7 +30,7 @@ const aiArrClose = (m) => AI0 * Math.pow(1.05, m);
 const slgArrAt = (m) => SLG0 * Math.pow(NDR, Math.floor((m - 1) / 12)); // during / end of month m
 // Opening AR 40/40/20 (Nov-Jan) + Jacobs 42K Jan '27, 56K Apr '27
 const COLLECT = { 1: 40000, 2: 40000, 3: 20000 + 42000, 6: 56000 };
-const CREDIT = (m) => (m <= 2 ? 25000 : 0); // OpenAI credits off inference, 50% Nov / 50% Dec
+const CREDIT = (m) => (m === 2 ? 50000 : 0); // OpenAI credits received: $50K set off once in Dec '26
 
 // Organic SLG: $27,540.30/mo of new ARR booked from Mar '27 (month 5); each cohort collected
 // in full 2 months later, renewing x NDR every 12 months.
@@ -53,7 +53,7 @@ function baselineInflow(m, churn) {
     + orgCash(m)
     + (COLLECT[m] || 0);
 }
-const baselineOutflow = (m) => 300000 - CREDIT(m);
+const baselineOutflow = (m) => 325000 - CREDIT(m); // $250K base + $75K Anthropic
 
 // ── Dates ───────────────────────────────────────────────────────────────────
 test('month labels and default dates map to the agreed calendar months', () => {
@@ -64,10 +64,10 @@ test('month labels and default dates map to the agreed calendar months', () => {
   assert.equal(E.monthLabel(p.start, 36), "Oct '29");
   assert.deepEqual(p.deals.map(d => [d.id, d.group, d.arr, E.monthLabel(p.start, d.closeMonth)]), [
     ['itc', 'itc', 75000, "Jan '27"],
-    ['lt', 'lt', 150000, "Nov '26"],
+    ['lt', 'lt', 150000, "Dec '26"],
     ['carwash', 'carwash', 100000, "Dec '26"],
-    ['others-1', 'others', 50000, "Dec '26"],
-    ['others-2', 'others', 25000, "Jan '27"]
+    ['others-1', 'others', 37500, "Dec '26"],
+    ['others-2', 'others', 37500, "Jan '27"]
   ]);
   for (const d of p.deals) {
     assert.deepEqual(d.schedule.map(s => [s.offset, s.pct]), [[2, 50], [4, 25], [7, 25]], d.id);
@@ -78,26 +78,32 @@ test('month labels and default dates map to the agreed calendar months', () => {
   assert.deepEqual(pay('openingAr'), [[40000, "Nov '26"], [40000, "Dec '26"], [20000, "Jan '27"]]);
   assert.deepEqual(pay('jacobs'), [[42000, "Jan '27"], [56000, "Apr '27"]]);
   assert.ok(p.collections.every(c => c.on));
-  assert.equal(E.monthLabel(p.start, p.openAiCredit.startMonth), "Nov '26");
-  assert.equal(p.openAiCredit.months, 2);
+  assert.equal(E.monthLabel(p.start, p.openAiCredit.startMonth), "Dec '26");
+  assert.equal(p.openAiCredit.months, 1);
   assert.equal(p.openAiCredit.total, 50000);
   assert.equal(p.openAiCredit.on, true);
   assert.equal(E.monthLabel(p.start, p.marketing.startMonth), "Nov '26");
   assert.equal(p.marketing.months, 3);
   assert.equal(E.monthIndex(p.start, 2027, 6), 9); // Jul '27 = month 9
+  assert.deepEqual([p.salary.monthly, E.monthLabel(p.start, p.salary.startMonth)], [12500, "Jan '27"]);
+  assert.deepEqual([p.funding.amount, E.monthLabel(p.start, p.funding.month)], [5000000, "Mar '27"]);
 });
 
 test('default inputs match Oct-26 month-end actuals and agreed assumptions', () => {
   const p = D();
   assert.equal(p.openingCash, 2316098);
-  assert.equal(p.costs.base + p.costs.anthropic, 300000);
+  assert.equal(p.costs.base + p.costs.anthropic, 325000);
+  assert.equal(p.costs.anthropic, 75000);
+  assert.equal(p.anthropicBase, 75000);
   assert.equal(E.openingArr(p), 142557 + 78300 + 275403);
   assert.equal(E.openingArr(p), 496260);
   assert.ok(p.deals.every(d => d.on === false));
   assert.equal(p.deals.filter(d => d.group === 'others').reduce((a, d) => a + d.arr, 0), 75000);
   assert.equal(p.deals.reduce((a, d) => a + d.arr, 0), 400000);
   assert.equal(p.marketing.on, false);
-  assert.equal(p.plg.churnReductionOn, false);
+  assert.ok(!('churnReductionOn' in p.plg) && !('lowChurnPct' in p.plg)); // lower-churn switch removed
+  assert.equal(p.salary.on, false);  // switch states come from the presets
+  assert.equal(p.funding.on, false);
 });
 
 // ── Baseline, month 1 by hand ───────────────────────────────────────────────
@@ -108,10 +114,10 @@ test('month 1 cash, by hand', () => {
   close(r.inSlgBase, 170403 / 12);
   close(r.inOneOff, 40000);
   close(r.inDeals, 0);
-  close(r.creditOffset, 25000);
-  close(r.outflow, 300000 - 25000);
-  // 11879.75 + 6525 + 14200.25 + 40000 - (300000 - 25000)
-  close(r.cashClose, 2316098 + 11879.75 + 6525 + 14200.25 + 40000 - 300000 + 25000);
+  close(r.creditOffset, 0);                 // credits land in Dec, not Nov
+  close(r.outflow, 325000);
+  // 11879.75 + 6525 + 14200.25 + 40000 - 325000
+  close(r.cashClose, 2316098 + 11879.75 + 6525 + 14200.25 + 40000 - 325000);
 });
 
 test('Jacobs: $42K in Jan-27 and $56K in Apr-27 only; excluded from monthly SLG cash', () => {
@@ -134,17 +140,17 @@ test('Opening AR switch removes exactly $40K / $40K / $20K', () => {
   rows.forEach((r, i) => close(base[i].cashClose - r.cashClose, cum[Math.min(i, 2)], `AR m${r.m}`));
 });
 
-test('OpenAI credits: $50K off inference, $25K Nov + $25K Dec, capped at that month\'s inference cost', () => {
+test('OpenAI credits: $50K set off once against Dec-26 AI cost, capped at that month cost', () => {
   const base = E.simulate(D(), H);
   base.forEach(r => close(r.creditOffset, CREDIT(r.m), `credit m${r.m}`));
   close(base.reduce((a, r) => a + r.creditOffset, 0), 50000);
   const off = D(); off.openAiCredit.on = false;
   E.simulate(off, H).forEach((r, i) => {
     close(r.creditOffset, 0);
-    close(base[i].cashClose - r.cashClose, 25000 * Math.min(r.m, 2), `credit cum m${r.m}`);
+    close(base[i].cashClose - r.cashClose, r.m >= 2 ? 50000 : 0, `credit cum m${r.m}`);
   });
   const small = D(); small.costs.anthropic = 10000;
-  E.simulate(small, H).forEach(r => close(r.creditOffset, r.m <= 2 ? 10000 : 0, `cap m${r.m}`));
+  E.simulate(small, H).forEach(r => close(r.creditOffset, r.m === 2 ? 10000 : 0, `cap m${r.m}`));
   const zero = D(); zero.costs.anthropic = 0;
   E.simulate(zero, H).forEach(r => { close(r.creditOffset, 0); close(r.outflow, 250000); });
 });
@@ -178,8 +184,8 @@ function assertIdentities(rows, p) {
   let prev = p.openingCash;
   for (const r of rows) {
     close(r.cashOpen, prev, `opening m${r.m}`);
-    close(r.inflow, r.inPlg + r.inMkt + r.inAi + r.inSlgBase + r.inDeals + r.inSlgOrg + r.inOneOff, `inflow m${r.m}`);
-    close(r.outflow, r.outBase + r.outAnthropic - r.creditOffset + r.outMkt, `outflow m${r.m}`);
+    close(r.inflow, r.inPlg + r.inMkt + r.inAi + r.inSlgBase + r.inDeals + r.inSlgOrg + r.inOneOff + r.inFunding, `inflow m${r.m}`);
+    close(r.outflow, r.outBase + r.outAnthropic - r.creditOffset + r.outMkt + r.outSalary, `outflow m${r.m}`);
     assert.ok(r.creditOffset >= 0 && r.creditOffset <= r.outAnthropic, `credit cap m${r.m}`);
     close(r.cashClose, r.cashOpen + r.inflow - r.outflow, `cash m${r.m}`);
     close(r.arrTotal, r.arrPlg + r.arrMkt + r.arrAi + r.arrSlgBase + r.arrDeals + r.arrSlgOrg, `ARR m${r.m}`);
@@ -188,25 +194,27 @@ function assertIdentities(rows, p) {
 }
 
 test('cash and ARR identities hold with every lever combination', () => {
-  const ants = [0, 25000, 50000, 80000];
-  for (let mask = 0; mask < 1024; mask++) {
+  const ants = [0, 25000, 50000, 75000];
+  for (let mask = 0; mask < 4096; mask++) {
     const p = D();
     p.deals.forEach((d, i) => { d.on = !!(mask & (1 << i)); });
     p.marketing.on = !!(mask & 32);
-    p.plg.churnReductionOn = !!(mask & 64);
+    p.plg.churnPct = mask & 64 ? 15 : 20;
     p.openAiCredit.on = !!(mask & 128);
     p.collections[0].on = !!(mask & 256);
     p.collections[1].on = !!(mask & 512);
+    p.salary.on = !!(mask & 1024);
+    p.funding.on = !!(mask & 2048);
     p.costs.anthropic = ants[mask % 4];
     assertIdentities(E.simulate(p, H), p);
   }
 });
 
 // ── Levers ──────────────────────────────────────────────────────────────────
-test('Anthropic selector shifts cash by exactly (cost - 50K) x months (credits off)', () => {
+test('Anthropic selector shifts cash by exactly (75K - cost) x months (credits off)', () => {
   const b = D(); b.openAiCredit.on = false;
   const base = E.simulate(b, H);
-  for (const [cost, delta] of [[80000, -30000], [25000, 25000], [0, 50000]]) {
+  for (const [cost, delta] of [[50000, 25000], [25000, 50000], [0, 75000]]) {
     const p = D(); p.openAiCredit.on = false; p.costs.anthropic = cost;
     const rows = E.simulate(p, H);
     rows.forEach((r, i) => {
@@ -232,16 +240,16 @@ test('L&T deal: ARR from Dec-26, cash 50/25/25 in Feb/Apr/Jul-27, renews x NDR',
   });
 });
 
-test('default close months: L&T Nov, Car Wash + Others $50K Dec, ITC + Others $25K Jan', () => {
+test('default close months: L&T + Car Wash + Others $37.5K Dec, ITC + Others $37.5K Jan', () => {
   const p = D(); p.deals.forEach(d => { d.on = true; });
   const rows = E.simulate(p, H);
-  // ARR builds 150K (Nov) -> 300K (Dec) -> 400K (Jan)
-  [150000, 300000, 400000, 400000].forEach((v, i) => close(rows[i].arrDeals, v, `deal ARR m${i + 1}`));
+  // ARR builds 0 (Nov) -> 287.5K (Dec: 150 + 100 + 37.5) -> 400K (Jan)
+  [0, 287500, 400000, 400000].forEach((v, i) => close(rows[i].arrDeals, v, `deal ARR m${i + 1}`));
   // Cash by hand (50/25/25 at +2/+4/+7 from each close):
-  // L&T Nov 150K: Jan 75K, Mar 37.5K, Jun 37.5K | Car Wash Dec: Feb 50K, Apr 25K, Jul 25K
-  // Others-1 Dec 50K: Feb 25K, Apr 12.5K, Jul 12.5K | ITC Jan: Mar 37.5K, May 18.75K, Aug 18.75K
-  // Others-2 Jan 25K: Mar 12.5K, May 6.25K, Aug 6.25K
-  const exp = { 3: 75000, 4: 75000, 5: 87500, 6: 37500, 7: 25000, 8: 37500, 9: 37500, 10: 25000 };
+  // L&T Dec 150K: Feb 75K, Apr 37.5K, Jul 37.5K | Car Wash Dec: Feb 50K, Apr 25K, Jul 25K
+  // Others-1 Dec 37.5K: Feb 18.75K, Apr 9.375K, Jul 9.375K | ITC Jan: Mar 37.5K, May 18.75K, Aug 18.75K
+  // Others-2 Jan 37.5K: Mar 18.75K, May 9.375K, Aug 9.375K
+  const exp = { 4: 143750, 5: 56250, 6: 71875, 7: 28125, 9: 71875, 10: 28125 };
   rows.slice(0, 12).forEach(r => close(r.inDeals, exp[r.m] || 0, `deal cash m${r.m}`));
   close(rows.slice(0, 12).reduce((a, r) => a + r.inDeals, 0), 400000);
 });
@@ -296,6 +304,30 @@ test('marketing: 3 x $35K spend, ARR lands 1x ON TOP of PLG new ARR and churns a
   });
 });
 
+test('salary appraisal: exactly -$12,500/mo from Jan-27 (cumulative), never touches ARR', () => {
+  const base = E.simulate(D(), H);
+  const p = D(); p.salary.on = true;
+  E.simulate(p, H).forEach((r, i) => {
+    close(r.outSalary, r.m >= 3 ? 12500 : 0, `salary m${r.m}`);
+    close(base[i].cashClose - r.cashClose, 12500 * Math.max(r.m - 2, 0), `salary cum m${r.m}`);
+    close(r.arrTotal, base[i].arrTotal);
+  });
+  const q = D(); q.salary.monthly = -1;
+  assert.throws(() => E.simulate(q, H));
+});
+
+test('funding round: +$5M cash in Mar-27 only, never touches ARR', () => {
+  const base = E.simulate(D(), H);
+  const p = D(); p.funding.on = true;
+  E.simulate(p, H).forEach((r, i) => {
+    close(r.inFunding, r.m === 5 ? 5000000 : 0, `funding m${r.m}`);
+    close(r.cashClose - base[i].cashClose, r.m >= 5 ? 5000000 : 0, `funding cum m${r.m}`);
+    close(r.arrTotal, base[i].arrTotal);
+  });
+  const q = D(); q.funding.month = 0;
+  assert.throws(() => E.simulate(q, H));
+});
+
 test('PLG new % schedule: 30% for 6 months, -2.5 pts/mo, 25% floor', () => {
   const p = D();
   const got = [];
@@ -308,27 +340,26 @@ test('PLG new % schedule: 30% for 6 months, -2.5 pts/mo, 25% floor', () => {
   assert.throws(() => E.simulate(q, H));
 });
 
-test('Lower PLG churn switch: off by default; on = whole base at the editable rate (15%, try 10%)', () => {
+test('PLG churn: whole base at the editable churnPct (lower-churn switch removed)', () => {
   const p = D();
-  assert.equal(p.plg.churnReductionOn, false);
   assert.equal(E.plgChurnRate(p), 0.20);
-  p.plg.churnReductionOn = true;
-  assert.equal(E.plgChurnRate(p), 0.15);
-  E.simulate(p, H).forEach(r => close(r.arrPlg, plgArrClose(r.m, 0.15), `PLG m${r.m}`));
-  close(E.simulate(p, 1)[0].arrPlg, 142557 * 0.85 + 70000);     // existing base churns at 15% too
-  p.plg.lowChurnPct = 10;
-  assert.equal(E.plgChurnRate(p), 0.10);
-  E.simulate(p, H).forEach(r => close(r.arrPlg, plgArrClose(r.m, 0.10), `PLG 10% m${r.m}`));
-  p.plg.lowChurnPct = -1;
-  assert.throws(() => E.simulate(p, H));
+  p.plg.churnReductionOn = true; p.plg.lowChurnPct = 10;      // stale fields from old state are ignored
+  assert.equal(E.plgChurnRate(p), 0.20);
+  const q = D(); q.plg.churnPct = 15;
+  E.simulate(q, H).forEach(r => close(r.arrPlg, plgArrClose(r.m, 0.15), `PLG 15% m${r.m}`));
+  close(E.simulate(q, 1)[0].arrPlg, 142557 * 0.85 + 70000);
+  q.plg.churnPct = -1;
+  assert.throws(() => E.simulate(q, H));
 });
 
 test('everything on: cash equals baseline + each lever computed independently', () => {
   const p = D();
   p.deals.forEach(d => { d.on = true; d.closeMonth = 2; });
   p.marketing.on = true;
-  p.plg.churnReductionOn = true;
+  p.plg.churnPct = 15;
   p.costs.anthropic = 80000;
+  p.salary.on = true;
+  p.funding.on = true;
   const rows = E.simulate(p, H);
   const dealCash = { 4: 200000, 6: 100000, 9: 100000, 16: 210000, 18: 105000, 21: 105000, 28: 220500, 30: 110250, 33: 110250 };
   const mkt = [35000, 35000 * 0.85 + 35000];                    // marketing ARR on top, churning at 15%
@@ -337,7 +368,7 @@ test('everything on: cash equals baseline + each lever computed independently', 
   let cash = 2316098;
   for (let m = 1; m <= H; m++) {
     const inflow = baselineInflow(m, 0.15) + (dealCash[m] || 0) + (m > 1 ? mkt[m - 2] / 12 : 0);
-    const outflow = 250000 + 80000 - CREDIT(m) + (m <= 3 ? 35000 : 0);
+    const outflow = 250000 + 80000 - CREDIT(m) + (m <= 3 ? 35000 : 0) + (m >= 3 ? 12500 : 0) - (m === 5 ? 5000000 : 0);
     cash += inflow - outflow;
     const r = rows[m - 1];
     close(r.cashClose, cash, `cash m${m}`);
@@ -349,9 +380,9 @@ test('everything on: cash equals baseline + each lever computed independently', 
 test('turning levers on then off returns exactly the baseline', () => {
   const base = E.simulate(D(), H);
   const p = D();
-  p.deals.forEach(d => { d.on = true; }); p.marketing.on = true; p.plg.churnReductionOn = true;
+  p.deals.forEach(d => { d.on = true; }); p.marketing.on = true; p.salary.on = true; p.funding.on = true;
   E.simulate(p, H);
-  p.deals.forEach(d => { d.on = false; }); p.marketing.on = false; p.plg.churnReductionOn = false;
+  p.deals.forEach(d => { d.on = false; }); p.marketing.on = false; p.salary.on = false; p.funding.on = false;
   assert.deepEqual(E.simulate(p, H), base);
 });
 
@@ -361,7 +392,7 @@ function synthetic(cash, target) {
   const p = D();
   p.openingCash = cash; p.targetArr = target; p.arrRounding = 0; // exact target in hand-solved cases
   p.costs = { base: 1000, anthropic: 0 };
-  p.plg = { subArr: 1200, newFixedArr: 0, newFixedMonths: 0, newPct: 100, newHoldMonths: 0, newStepPts: 0, newFloorPct: 0, churnPct: 0, lowChurnPct: 0, churnReductionOn: false };
+  p.plg = { subArr: 1200, newFixedArr: 0, newFixedMonths: 0, newPct: 100, newHoldMonths: 0, newStepPts: 0, newFloorPct: 0, churnPct: 0 };
   p.ai = { arr: 0, growthPct: 0 };
   p.slg = { arr: 0, churnPct: 0, expPct: 0, jacobsArr: 0 };
   p.collections = [];
@@ -457,7 +488,7 @@ test('leverImpact: no $1M date delta when cash runs out first on either side', (
 });
 
 test('leverImpact: real deltas when $1M is reached both ways; identical runs give zero', () => {
-  const p = D(); p.deals.forEach(d => { d.on = true; }); p.plg.churnReductionOn = true;
+  const p = D(); p.deals.forEach(d => { d.on = true; }); p.plg.churnPct = 15;
   const lt = E.leverImpact(p, q => { q.deals[1].on = true; }, q => { q.deals[1].on = false; });
   assert.equal(lt.reachedWith, true);
   assert.equal(lt.reachedWithout, true);
@@ -507,15 +538,16 @@ test('scenarios set exactly the agreed switches and nothing else', () => {
   const sw = q => ({
     deals: groupsOn(q),
     ar: q.collections.find(c => c.id === 'openingAr').on,
-    churn: q.plg.churnReductionOn,
     ant: q.costs.anthropic,
     openAi: q.openAiCredit.on,
-    mkt: q.marketing.on
+    mkt: q.marketing.on,
+    salary: q.salary.on,
+    funding: q.funding.on
   });
   const expected = {
-    bear: { deals: ['lt', 'others'], ar: true, churn: false, ant: 80000, openAi: true, mkt: false },
-    base: { deals: ['lt', 'carwash', 'others'], ar: true, churn: false, ant: 50000, openAi: true, mkt: false },
-    bull: { deals: ['itc', 'lt', 'carwash', 'others'], ar: true, churn: false, ant: 25000, openAi: true, mkt: true }
+    bear: { deals: ['lt', 'others'], ar: true, ant: 75000, openAi: true, mkt: false, salary: true, funding: false },
+    base: { deals: ['lt', 'carwash', 'others'], ar: true, ant: 75000, openAi: true, mkt: false, salary: true, funding: false },
+    bull: { deals: ['itc', 'lt', 'carwash', 'others'], ar: true, ant: 75000, openAi: true, mkt: true, salary: true, funding: false }
   };
   assert.deepEqual(E.SCENARIOS.map(s => s.id), ['bear', 'base', 'bull']);
   for (const id of Object.keys(expected)) {
@@ -524,7 +556,8 @@ test('scenarios set exactly the agreed switches and nothing else', () => {
     assert.equal(E.matchScenario(q), id);
     // assumptions untouched: only switch fields differ
     const strip = x => { const c = E.clone(x); c.deals.forEach(d => { d.on = false; }); c.collections.forEach(k => { k.on = true; });
-      c.plg.churnReductionOn = false; c.costs.anthropic = 0; c.openAiCredit.on = false; c.marketing.on = false; return JSON.stringify(c); };
+      c.costs.anthropic = 0; c.openAiCredit.on = false; c.marketing.on = false;
+      c.salary.on = false; c.funding.on = false; return JSON.stringify(c); };
     assert.equal(strip(q), strip(p), id + ' changed an assumption');
   }
   // Bull turns on both "Others" tranches
@@ -539,6 +572,11 @@ test('matchScenario returns null (Custom) once a switch differs', () => {
   q.marketing.on = false;
   assert.equal(E.matchScenario(q), 'base');
   q.deals.find(d => d.id === 'others-2').on = false; // half a group on = custom
+  assert.equal(E.matchScenario(q), null);
+  q.deals.find(d => d.id === 'others-2').on = true;
+  q.funding.on = true;                                // funding is off in every preset
+  assert.equal(E.matchScenario(q), null);
+  q.funding.on = false; q.salary.on = false;          // salary is on in every preset
   assert.equal(E.matchScenario(q), null);
 });
 
@@ -569,9 +607,14 @@ test('preset headline numbers are pinned (any change that moves a board number m
   const expect = {
     // Nov 11 '26 (later): PLG new ARR fixed $81K/mo Nov-Jan (marketing users inside it).
     // Moved Bear Jun -> Apr '27; Base and Bull $1M months unchanged, runways ~+7-12 days.
-    bear: { hit: 7, cash: 742522, runout: 10.2237, status: 'low-runway' }, // $70K PLG (was $81K): Apr -> May '27
-    base: { hit: 5, cash: 1403137, runout: 12.1381, status: 'ok' }, // marketing out of Base; PLG $70K/mo Nov-Jan
-    bull: { hit: 3, cash: 1769755, runout: 13.8587, status: 'ok' }  // marketing ARR now on top of PLG new ARR
+    // Nov 24 '26: L&T Nov -> Dec, Others 50/25 -> 37.5/37.5, salary appraisal $12.5K/mo from Jan '27 in every preset.
+    // $1M months unchanged. Cash at $1M by hand: Bear 742,522 - 5 x 12,500 = 680,022 (deal cash timing nets to 0 by May);
+    // Base 1,403,137 - 3 x 12,500 - 37,500 (L&T tranche Mar -> Apr) = 1,328,137; Bull 1,769,755 - 12,500 - 75,000 (L&T Jan -> Feb) = 1,682,255.
+    // Nov 24 '26 (later): Anthropic $75K in every preset; OpenAI $50K credit all in Dec (same total by every hit month).
+    // Bear 680,022 + 7 x 5,000 = 715,022; Base 1,328,137 - 5 x 25,000 = 1,203,137; Bull 1,682,255 - 3 x 50,000 = 1,532,255.
+    bear: { hit: 7, cash: 715022, runout: 10.0182, status: 'low-runway' },
+    base: { hit: 5, cash: 1203137, runout: 10.4158, status: 'ok' },
+    bull: { hit: 3, cash: 1532255, runout: 10.4435, status: 'ok' }
   };
   Object.keys(expect).forEach(id => {
     const a = E.analyse(E.applyScenario(D(), id)), x = expect[id];
@@ -585,18 +628,18 @@ test('preset headline numbers are pinned (any change that moves a board number m
 test('sense check: Anthropic runway effect within 10% of extra cost x months / net burn', () => {
   ['bear', 'base', 'bull'].forEach(id => {
     const p = E.applyScenario(D(), id);
-    [25000, 80000].forEach(alt => {
-      const r = E.leverImpact(p, q => { q.costs.anthropic = alt; }, q => { q.costs.anthropic = 50000; });
+    [25000, 50000].forEach(alt => {
+      const r = E.leverImpact(p, q => { q.costs.anthropic = alt; }, q => { q.costs.anthropic = 75000; });
       const exactDays = Math.abs(E.monthsToDays(r.runoutDelta));
-      const chk = E.costCheck(p, alt, 50000);
+      const chk = E.costCheck(p, alt, 75000);
       assert.ok(chk, id + ' ' + alt + ' has a check');
       assert.ok(Math.abs(chk.days - exactDays) <= 0.1 * exactDays,
         id + ' ' + alt + ': hand calc ' + chk.days + ' vs page ' + exactDays + ' days');
     });
   });
-  // Base $50K -> $80K: $30K x ~10.3 mo / ~$210K net burn ~= 46 days (42 at audit; 47 with $81K PLG and marketing out of Base; 46 with $70K PLG)
+  // Base $75K -> $50K: $25K x ~10.4 mo / ~$226K net burn ~= 35 days (Nov 24, $75K baseline; was $50K -> $80K = 41 days)
   assert.equal(Math.abs(E.monthsToDays(E.leverImpact(E.applyScenario(D(), 'base'),
-    q => { q.costs.anthropic = 80000; }, q => { q.costs.anthropic = 50000; }).runoutDelta)), 46);
+    q => { q.costs.anthropic = 50000; }, q => { q.costs.anthropic = 75000; }).runoutDelta)), 35);
 });
 
 test('sense check: removing a deal delays $1M by about (its ARR - margin above $1M) / monthly ARR growth (+/- 1.5 months)', () => {

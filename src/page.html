@@ -118,11 +118,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="sw" style="grid-template-columns:1fr;border-top:1px solid var(--border2)">
       <div><b style="font-weight:500">Anthropic AI cost per month</b></div>
       <div class="seg" id="ant">
-        <button type="button" data-v="50000">$50K today</button>
-        <button type="button" data-v="80000">$80K</button>
+        <button type="button" data-v="75000">$75K today</button>
+        <button type="button" data-v="50000">$50K</button>
         <button type="button" data-v="25000">$25K</button>
       </div>
       <div class="eff" id="ant-eff" style="grid-column:1"></div>
+      <div class="hint" id="ant-credit" style="grid-column:1"></div>
     </div>
   </div>
 
@@ -146,7 +147,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div><label title="Number of months (from Nov '26) that use the fixed dollar amount; 0 = use the % rule from the start">Fixed-$ PLG months</label><input class="fi" type="number" data-path="plg.newFixedMonths" step="1" data-int="1"></div>
     <div><label title="PLG new ARR, % of base per month, after the fixed-$ months">PLG new ARR after (% / mo)</label><input class="fi" type="number" data-path="plg.newPct" step="1"></div>
     <div><label title="PLG churn, % per month">PLG churn (% / mo)</label><input class="fi" type="number" data-path="plg.churnPct" step="1"></div>
-    <div><label title="Churn on the whole PLG base when the 'Lower PLG churn' switch is ticked">Lower PLG churn (% / mo)</label><input class="fi" type="number" data-path="plg.lowChurnPct" step="1"></div>
   </div>
 </details>
 
@@ -165,6 +165,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   'use strict';
   var E = window.RunwayEngine;
   var DEFAULT_SCENARIO = 'base';
+  var FIXED_CLOSE = ['lt', 'carwash']; // deal groups locked to their default close month (Dec '26)
   var P = E.applyScenario(E.defaults(), DEFAULT_SCENARIO);
   var DEC27 = E.monthIndex(P.start, 2027, 11);
   var CASH_CLR = '#f59e0b'; // amber, stands out against the blue ARR bars
@@ -175,7 +176,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     if (n === null || n === undefined || !isFinite(n)) return '—';
     var a = Math.abs(n), s = n < 0 ? '−' : '';
     if (a >= 999500) return s + '$' + (a / 1e6).toFixed(2) + 'M'; // avoids "$1000K"
-    if (a >= 1e3) return s + '$' + Math.round(a / 1e3) + 'K';
+    if (a >= 1e5) return s + '$' + Math.round(a / 1e3) + 'K';
+    if (a >= 1e3) return s + '$' + +(a / 1e3).toFixed(1) + 'K'; // $12.5K, $37.5K (not $13K / $38K)
     return s + '$' + Math.round(a);
   }
   function lbl(m) { return E.monthLabel(P.start, m); }
@@ -211,16 +213,20 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       var first = P.deals[idx[0]];
       return { key: 'deal-' + g, group: 'revenue', name: first.label + ' deal', amount: '+' + f$(total) + ' ARR',
         on: idx.every(function (i) { return P.deals[i].on; }),
-        closeSelect: idx.length === 1 ? idx[0] : undefined,
+        // L&T and Car Wash are fixed in Dec '26 (no close-month dropdown); others can move.
+        closeSelect: idx.length === 1 && FIXED_CLOSE.indexOf(g) === -1 ? idx[0] : undefined,
+        fixedClose: idx.length === 1 && FIXED_CLOSE.indexOf(g) !== -1 ? lbl(P.deals[idx[0]].closeMonth) : null,
         tranches: idx.length > 1 ? idx.map(function (i) { return f$(P.deals[i].arr) + ' ' + lbl(P.deals[i].closeMonth); }).join(' + ') : null,
         set: function (q, v) { idx.forEach(function (i) { q.deals[i].on = v; }); } };
     });
     // Opening receivables are always collected (every scenario); described in the notes, no switch.
-    rev.push({ key: 'churn', group: 'revenue', name: 'Lower PLG churn', amount: P.plg.churnPct + '% → ' + P.plg.lowChurnPct + '%/mo',
-      on: P.plg.churnReductionOn, set: function (q, v) { q.plg.churnReductionOn = v; } });
     var costs = [
       { key: 'mkt', group: 'costs', name: 'Marketing push', amount: f$(P.marketing.monthlySpend) + '/mo × ' + P.marketing.months, on: P.marketing.on,
-        set: function (q, v) { q.marketing.on = v; } }
+        set: function (q, v) { q.marketing.on = v; } },
+      { key: 'salary', group: 'costs', name: 'Salary appraisal', amount: f$(P.salary.monthly) + '/mo from ' + lbl(P.salary.startMonth), on: P.salary.on,
+        set: function (q, v) { q.salary.on = v; } },
+      { key: 'funding', group: 'costs', name: 'Funding round', amount: '+' + f$(P.funding.amount) + ' cash ' + lbl(P.funding.month), on: P.funding.on,
+        set: function (q, v) { q.funding.on = v; } }
     ];
     return rev.concat(costs);
   }
@@ -234,6 +240,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     } else if (r.reachedWith && !r.reachedWithout) parts.push('<span class="good">needed to reach $1M before cash runs out</span>');
     else if (!r.reachedWith && r.reachedWithout) parts.push('<span class="badc">cash runs out before $1M with this</span>');
     else parts.push('cash still runs out before $1M');
+    if (r.with.runout === null && r.without.runout !== null) parts.push('<span class="good">cash lasts 10+ years (runs out ' + outMonth(r.without.runout) + ' without)</span>');
+    else if (r.with.runout !== null && r.without.runout === null) parts.push('<span class="badc">cash runs out ' + outMonth(r.with.runout) + ' (lasts 10+ years without)</span>');
     if (r.runoutDelta !== null && Math.abs(r.runoutDelta) > 1e-9) {
       var days = E.monthsToDays(r.runoutDelta);
       parts.push('<span class="' + (days > 0 ? 'good' : 'badc') + '">' + (days > 0 ? '+' : '−') + Math.abs(days) + ' days of cash</span>');
@@ -248,7 +256,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       box.innerHTML = list.filter(function (s) { return s.group === g; }).map(function (s) {
         var close = s.closeSelect !== undefined
           ? ' <span style="color:var(--muted);font-size:12px">closes</span> <select data-close="' + s.closeSelect + '">' + closeOptions(P.deals[s.closeSelect].closeMonth) + '</select>'
-          : s.tranches ? ' <span style="color:var(--muted);font-size:12px">' + esc(s.tranches) + '</span>' : '';
+          : s.tranches ? ' <span style="color:var(--muted);font-size:12px">' + esc(s.tranches) + '</span>'
+          : s.fixedClose ? ' <span style="color:var(--muted);font-size:12px">closes ' + esc(s.fixedClose) + '</span>' : '';
         return '<div class="sw"><input type="checkbox" id="sw-' + s.key + '"' + (s.on ? ' checked' : '') + '>' +
           '<label for="sw-' + s.key + '">' + esc(s.name) + close + '</label>' +
           '<span class="amt">' + esc(s.amount) + '</span>' +
@@ -277,6 +286,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       : (cur > base ? '+' : '−') + f$(Math.abs(cur - base)) + '/mo vs today · ' + effectText(r) +
         (chk ? '<div class="chk">Check: ' + esc(f$(chk.extra)) + '/mo × ' + chk.months.toFixed(1) + ' mo = ' + esc(f$(chk.extra * chk.months)) +
           ' ÷ ' + esc(f$(chk.burn)) + ' net burn (' + esc(lbl(chk.burnMonth)) + ') ≈ ' + chk.days + ' days</div>' : '');
+    var oc = P.openAiCredit;
+    setText('ant-credit', oc.on ? 'OpenAI credits received: ' + f$(oc.total) + ' set off once against ' + lbl(oc.startMonth) +
+      (oc.months > 1 ? '–' + lbl(oc.startMonth + oc.months - 1) : '') + ' AI cost (one-off).' : '');
   }
   function renderPresets() {
     var cur = E.matchScenario(P);
@@ -294,6 +306,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var parts = [s.deals.length ? s.deals.map(function (g) { return names[g] || g; }).join(', ') : 'no new deals'];
     parts.push('Anthropic ' + f$(s.anthropic));
     if (s.marketing) parts.push('marketing push');
+    if (s.salary) parts.push('salary appraisal');
+    if (s.funding) parts.push('funding round');
     return parts.join(' · ') + '.';
   }
   function closeOptions(sel) {
@@ -440,16 +454,15 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var tgt = P.targetArr >= 1e6 ? '$' + +(P.targetArr / 1e6).toFixed(2) + 'M' : f$(P.targetArr);
     var ar = coll('openingAr'), jac = coll('jacobs'), oc = P.openAiCredit, mk = P.marketing;
     var notes = [
-      ['Cash', '= money in − costs, Anthropic and marketing (if on). No interest income or cost growth.'],
-      ['PLG', 'pays monthly and churns ' + churn + '%/mo on the whole PLG base' +
-        (g.churnReductionOn ? ' (lower-churn switch on; ' + g.churnPct + '% otherwise). ' : ' (' + g.lowChurnPct + '% with the lower-churn switch). ') +
+      ['Cash', '= money in (plus the funding round, if on) − costs, Anthropic, marketing and the salary appraisal (if on). No interest income or other cost growth.'],
+      ['PLG', 'pays monthly and churns ' + churn + '%/mo on the whole PLG base. ' +
         (g.newFixedMonths > 0 ? 'New ARR is a fixed ' + f$(g.newFixedArr) + '/mo before churn for ' + lbl(1) +
           (g.newFixedMonths > 1 ? '–' + lbl(g.newFixedMonths) : '') + ', then ' : 'New ARR is ') +
         g.newPct + '% of base' + (g.newHoldMonths > g.newFixedMonths ? ' until ' + lbl(g.newHoldMonths) : '') +
         (floorAt !== null ? ', then drops ' + g.newStepPts + ' pts/mo to ' + g.newFloorPct + '% (' + lbl(floorAt) + ').' : ', flat.') +
         (Math.min(g.newPct, g.newFloorPct) < churn ? ' Below the churn rate, PLG shrinks.' : '')],
-      ['AI credits', 'grow ' + P.ai.growthPct + '%/mo and count toward ' + tgt + '. OpenAI credits cut AI cost by ' + f$(oc.total) + ' over ' +
-        lbl(oc.startMonth) + '–' + lbl(oc.startMonth + oc.months - 1) + ', never below $0.'],
+      ['AI credits', 'grow ' + P.ai.growthPct + '%/mo and count toward ' + tgt + '. OpenAI credits received (' + f$(oc.total) + ') are set off once against ' +
+        lbl(oc.startMonth) + (oc.months > 1 ? '–' + lbl(oc.startMonth + oc.months - 1) : '') + ' AI cost, never below $0.'],
       ['Existing SLG', 'is paid monthly and renews yearly at ' + ndr + '%. Jacobs (' + f$(P.slg.jacobsArr) + ' ARR) pays only ' +
         jac.payments.map(function (o) { return f$(o.amount) + ' ' + lbl(o.month); }).join(' + ') + '.'],
       ['New SLG', P.slgGrowth && P.slgGrowth.on
@@ -461,6 +474,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         others.map(function (d) { return f$(d.arr) + ' ' + lbl(d.closeMonth); }).join(' + ') + '.'],
       ['Marketing', f$(mk.monthlySpend) + '/mo × ' + mk.months + ' from ' + lbl(mk.startMonth) + '. ' +
         'Each $1 buys $' + mk.roi + ' of PLG ARR on top of the PLG new ARR above; it churns at the PLG rate.'],
+      ['Salary appraisal', f$(P.salary.monthly) + '/mo (' + f$(P.salary.monthly * 12) + ' a year) of extra cost from ' + lbl(P.salary.startMonth) +
+        ', on in every scenario. Cash only: it does not change ARR.'],
+      ['Funding round', f$(P.funding.amount) + ' lands in ' + lbl(P.funding.month) + ' when ticked; off in every scenario. Cash only: it extends runway but does not move the ' + tgt + ' date.'],
       ['Collect opening receivables ' + f$(ar.payments.reduce(function (a, o) { return a + o.amount; }, 0)), 'in every scenario: ' + ar.payments.map(function (o) { return f$(o.amount); }).join('/') + ' ' + lbl(ar.payments[0].month) + '–' +
         lbl(ar.payments[ar.payments.length - 1].month) + ', on top of the ' + f$(P.openingCash) + '.'],
       [tgt, '= the first month-end whose ARR, rounded as below, is at or above ' + tgt + ', if cash hasn\'t run out. Amber: under ' + E.ALERT_MONTHS +
