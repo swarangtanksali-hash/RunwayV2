@@ -17,7 +17,7 @@
   --mono:'IBM Plex Mono','Courier New',monospace;--sans:'IBM Plex Sans',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:12px 76px 24px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:12px 95px 24px}
 .wrap{margin:0 auto}
 h1{font-size:18px;font-weight:600;letter-spacing:.01em}
 .sub{color:var(--muted);font-size:12px;margin-top:0}
@@ -87,7 +87,8 @@ h1{font-size:18px;font-weight:600;letter-spacing:.01em}
 
 .chart-box{position:relative;height:260px}
 #presets{display:flex;gap:22px;flex-wrap:wrap;margin:6px 0 4px}
-#presets label{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:500}
+#presets label{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--dim)}
+#presets label:has(input:checked){color:var(--bs);font-weight:600}
 #presets input{width:16px;height:16px;cursor:pointer;accent-color:var(--blu)}
 .legend-note{font-size:12px;color:var(--muted);margin-top:6px}
 
@@ -126,15 +127,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 <div class="group" style="margin-top:14px">Today · Oct '26 month-end (actuals, same in every scenario)</div>
 <div class="today">
-  <div class="tile"><div class="lbl">Cash</div><div class="val" id="d-cash"></div><div class="note" id="d-cash-n"></div></div>
+  <div class="tile"><div class="lbl">Cash (as of Oct '26)</div><div class="val" id="d-cash"></div><div class="note" id="d-cash-n"></div></div>
   <div class="tile"><div class="lbl">Net burn / month</div><div class="val" id="d-burn"></div><div class="note" id="d-burn-n"></div></div>
-  <div class="tile"><div class="lbl">Runway at today's burn</div><div class="val" id="d-rw"></div><div class="note" id="d-rw-n"></div></div>
+  <div class="tile"><div class="lbl">Runway at today's burn</div><div class="val" id="d-rw" style="color:var(--rs)"></div><div class="note" id="d-rw-n"></div></div>
   <div class="tile"><div class="lbl">ARR</div><div class="val" id="d-arr"></div><div class="note" id="d-arr-n"></div></div>
-  <div class="tile"><div class="lbl">Gap to $1M ARR</div><div class="val" id="d-gap"></div><div class="note" id="d-gap-n"></div></div>
+  <div class="tile"><div class="lbl">Gap to $1M ARR</div><div class="val" id="d-gap" style="color:var(--amb)"></div><div class="note" id="d-gap-n"></div></div>
 </div>
 
-<div class="split">
-<div>
 <div class="group" style="margin-top:14px">Where this scenario takes us</div>
 
 <div class="answer" id="answer"><div class="big" id="answer-big"></div><div class="small" id="answer-small"></div></div>
@@ -146,6 +145,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   <div class="tile"><div class="lbl">Cash runs out</div><div class="val" id="t-out"></div><div class="note" id="t-out-n"></div></div>
 </div>
 
+<div class="split">
+<div>
 <div class="bridge" id="bridge"></div>
 
 <div class="card">
@@ -179,7 +180,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 </div>
 </div>
 
-<div class="card pin" style="margin-top:8px">
+<div class="card pin">
   <h2>$1Mn ARR Target &amp; Cash Balance</h2>
   <div class="chart-box"><canvas id="combo-chart"></canvas></div>
 </div>
