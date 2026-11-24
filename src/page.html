@@ -64,6 +64,8 @@ h1{font-size:18px;font-weight:600;letter-spacing:.01em}
 
 .sw{display:grid;grid-template-columns:20px 1fr auto;gap:0 10px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border2)}
 .sw:last-child{border-bottom:none}
+.sw.hl{background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:6px;padding:4px 8px;margin:2px -8px}
+.sw.hl label{color:var(--as)}
 .sw input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--blu)}
 .sw label{cursor:pointer;font-weight:500}
 .sw .amt{font-family:var(--mono);font-size:13px;color:var(--dim);text-align:right}
@@ -167,8 +169,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div id="sw-costs"></div>
     <div class="sw" style="grid-template-columns:1fr;border-top:1px solid var(--border2)">
       <div style="display:flex;align-items:center;gap:12px"><b style="font-weight:500;white-space:nowrap">Anthropic AI cost per month</b>
-      <div class="seg" id="ant" style="flex:1;margin-top:0">
-        <button type="button" data-v="75000">$75K today</button>
+      <div class="seg" id="ant" style="margin-top:0;margin-left:auto;width:240px">
+        <button type="button" data-v="75000">$75K</button>
         <button type="button" data-v="50000">$50K</button>
         <button type="button" data-v="25000">$25K</button>
       </div></div>
@@ -310,7 +312,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
             closeOptions(P.deals[s.closeSelect].closeMonth, s.removeId ? E.CUSTOM_MAX_MONTH : 6) + '</select>'
           : s.tranches ? ' <span style="color:var(--muted);font-size:12px">' + esc(s.tranches) + '</span>' : '';
         if (s.removeId) close += ' <button type="button" class="rm" title="Remove this line" data-remove="' + esc(s.removeId) + '">×</button>';
-        return '<div class="sw"><input type="checkbox" id="sw-' + s.key + '"' + (s.on ? ' checked' : '') + '>' +
+        return '<div class="sw' + (s.key === 'salary' ? ' hl' : '') + '"><input type="checkbox" id="sw-' + s.key + '"' + (s.on ? ' checked' : '') + '>' +
           '<label for="sw-' + s.key + '">' + esc(s.name) + close + '</label>' +
           '<span class="amt">' + esc(s.amount) + '</span>' +
           '<div class="eff" id="eff-' + s.key + '"></div></div>';
@@ -445,7 +447,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       '<div class="row"><div class="k">ARR</div><div class="v"><b>' + f$(A.start) + ' → ' + f$(A.end) + '</b> ' + esc(to) +
         part('PLG', A.plg) + part('AI', A.ai) + part('SLG', A.slg) + part('Deals', A.deals) + '</div></div>' +
       '<div class="row"><div class="k">Cash</div><div class="v"><b>' + f$(C.start) + ' → ' + f$(C.end) + '</b> ' + esc(to) +
-        part('Monthly revenue', C.revenue) + part('Deal cash', C.deals) + part('Receivables', C.oneOff) +
+        part('Monthly $', C.revenue) + part('Deal cash', C.deals) + part('Receivables', C.oneOff) +
         part('Funding', C.funding) + part('Costs', C.costs) + part('Salary appraisal', C.salary) + '</div></div>';
   }
 
@@ -455,7 +457,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     function cell(v) { return Math.abs(v) < 0.5 ? '–' : f$(v); }
     var lines = [
       ['Opening cash', function (r) { return r.cashOpen; }, ''],
-      ['Monthly revenue', function (r) { return r.inPlg + r.inAi + r.inSlgBase + r.inSlgOrg; }, ''],
+      ['Monthly $', function (r) { return r.inPlg + r.inAi + r.inSlgBase + r.inSlgOrg; }, ''],
       ['Deal cash', function (r) { return r.inDeals; }, ''],
       ['Receivables', function (r) { return r.inOneOff; }, ''],
       ['Funding', function (r) { return r.inFunding; }, ''],
