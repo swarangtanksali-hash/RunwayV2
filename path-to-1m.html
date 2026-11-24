@@ -51,6 +51,12 @@ h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .sw .eff{grid-column:2 / 4;font-size:12px;color:var(--muted)}
 .sw .eff .good{color:var(--gs)}.sw .eff .badc{color:var(--rs)}
 .sw .eff .chk{color:var(--muted);font-size:11px;margin-top:2px}
+.sw .rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;margin-left:4px}
+.sw .rm:hover{color:var(--rs)}
+.addline{display:grid;grid-template-columns:1fr auto 110px auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)}
+.addline input,.addline select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:12px;padding:4px 6px;font-family:var(--sans);min-width:0}
+.addline input.bad{border-color:var(--red)}
+.addline button{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:12px;padding:4px 10px;cursor:pointer}
 .sw select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:12px;padding:1px 4px;font-family:var(--sans)}
 
 .seg{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:4px}
@@ -114,6 +120,13 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div class="hint">Or tick and untick switches yourself. Under each one: what it's worth on its own.</div>
 
     <div id="sw-revenue" style="border-top:1px solid var(--border);margin-top:8px"></div>
+    <div class="addline">
+      <input type="text" id="add-desc" maxlength="60" placeholder="Add customer (description)">
+      <select id="add-month" aria-label="Month"></select>
+      <input type="number" id="add-arr" min="0" step="1000" placeholder="ARR ($)" style="text-align:right">
+      <button type="button" id="add-btn">+ Add</button>
+    </div>
+    <div class="hint" id="add-hint">Added lines: cash in full 60 days after the month, renewing yearly. They stay when you switch scenarios but are not saved: they clear when the page reloads.</div>
     <div id="sw-costs"></div>
     <div class="sw" style="grid-template-columns:1fr;border-top:1px solid var(--border2)">
       <div><b style="font-weight:500">Anthropic AI cost per month</b></div>
@@ -143,9 +156,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     <div><label title="Existing SLG ARR">Existing SLG ARR ($)</label><input class="fi" type="number" data-path="slg.arr" step="1000"></div>
     <div><label title="AI credits ARR">AI credits ARR ($)</label><input class="fi" type="number" data-path="ai.arr" step="1000"></div>
     <div><label title="PLG subscription ARR, excluding AI credits">PLG subscription ARR ($)</label><input class="fi" type="number" data-path="plg.subArr" step="1000"></div>
-    <div><label title="Fixed PLG new ARR per month, before churn, for the first months (e.g. 125 users x $45 x 12)">PLG new ARR, fixed ($ / mo)</label><input class="fi" type="number" data-path="plg.newFixedArr" step="1000"></div>
-    <div><label title="Number of months (from Nov '26) that use the fixed dollar amount; 0 = use the % rule from the start">Fixed-$ PLG months</label><input class="fi" type="number" data-path="plg.newFixedMonths" step="1" data-int="1"></div>
-    <div><label title="PLG new ARR, % of base per month, after the fixed-$ months">PLG new ARR after (% / mo)</label><input class="fi" type="number" data-path="plg.newPct" step="1"></div>
+    <div><label title="Fixed PLG new ARR per month, before churn, Nov '26–Jan '27 (e.g. 125 users x $45 x 12)">PLG new ARR, fixed Nov–Jan ($ / mo)</label><input class="fi" type="number" data-path="plg.newFixedArr" step="1000"></div>
+    <div><label title="PLG new ARR, % of base per month, from Feb '27">PLG new ARR from Feb (% / mo)</label><input class="fi" type="number" data-path="plg.newPct" step="1"></div>
     <div><label title="PLG churn, % per month">PLG churn (% / mo)</label><input class="fi" type="number" data-path="plg.churnPct" step="1"></div>
   </div>
 </details>
@@ -164,14 +176,12 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
  *
  * TIMING CONVENTIONS (month m = 1 is the first modelled month):
  *  - Cash: closing(m) = opening(m) + inflows(m) - outflows(m).
- *  - Monthly-billed streams (PLG subscriptions, marketing-acquired PLG, AI credits, SLG opening
+ *  - Monthly-billed streams (PLG subscriptions, AI credits, SLG opening
  *    base) collect ARR_open(m) / 12 in month m, where ARR_open(m) = ARR at the end of m-1.
  *  - PLG subscriptions: ARR_close(m) = ARR_open(m) * (1 + new%(m) - churn%), both on the opening base.
  *    new%(m) = newPct for months 1..newHoldMonths, then falls newStepPts per month to newFloorPct.
  *    Exception: for months 1..newFixedMonths, new ARR is a fixed dollar amount (newFixedArr) instead
  *    of new% x base, i.e. ARR_close(m) = ARR_open(m) * (1 - churn%) + newFixedArr.
- *  - Marketing: on top of PLG new ARR (fixed-$ or %). Spend leaves cash in month m; the acquired ARR (spend x ROI) is counted in
- *    ARR_close(m) and collects monthly from m+1. That cohort only churns (no new% on it).
  *  - AI credits: ARR_close(m) = ARR_open(m) * (1 + growth%).
  *  - SLG opening base: steps by NDR = 1 - churn% + expansion% at the start of months 13, 25, ...
  *    Monthly cash = (ARR - Jacobs ARR) / 12; Jacobs is collected only via its scheduled payments.
@@ -183,6 +193,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
  *  - SLG deals: ARR counted from the end of the close month. Cash follows the schedule
  *    (offsets in months from close, % of contract value). Each deal renews every 12 months
  *    at value x NDR, re-collected on the same relative schedule.
+ *  - Added customer lines (custom: true): a deal with 100% of cash collected 2 months (60 days)
+ *    after its month, renewing x NDR. Presets never switch them (see setSwitches).
  *  - Salary appraisal: extra monthly cost from startMonth onward (cash only, no ARR effect).
  *  - Funding: one-off cash inflow in its month (cash only, no ARR effect).
  *  - Runway: fractional month where cash first reaches <= 0, interpolated inside that month.
@@ -198,6 +210,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   'use strict';
 
   var DAYS_PER_MONTH = 30.4375;
+  var MAX_LABEL = 60;  // max characters in a deal / added-line description
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var EXT_HORIZON = 120; // months simulated for analysis (runway / $1M beyond the display horizon)
   var ALERT_MONTHS = 4;  // amber warning when less than this much runway is left at $1M (~122 days)
@@ -272,6 +285,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         pctSum += s.pct;
       });
       if (Math.abs(pctSum - 100) > 1e-9) throw new RangeError('deals[' + i + '] schedule must total 100%');
+      if (typeof d.label !== 'string' || d.label.trim() === '' || d.label.length > MAX_LABEL) throw new RangeError('deals[' + i + '].label must be 1-' + MAX_LABEL + ' characters');
     });
     if (p.slgGrowth) {
       nonNeg(p.slgGrowth.pct, 'slgGrowth.pct');
@@ -283,16 +297,11 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     intIn(sal.startMonth, 1, EXT_HORIZON, 'salary.startMonth');
     nonNeg(p.funding.amount, 'funding.amount');
     intIn(p.funding.month, 1, EXT_HORIZON, 'funding.month');
-    var mk = p.marketing;
-    nonNeg(mk.monthlySpend, 'marketing.monthlySpend');
-    nonNeg(mk.roi, 'marketing.roi');
-    intIn(mk.startMonth, 1, EXT_HORIZON, 'marketing.startMonth');
-    intIn(mk.months, 0, EXT_HORIZON, 'marketing.months');
     return p;
   }
 
   function plgChurnRate(p) {
-    // Whole PLG base (and marketing ARR) churns at churnPct. (Lower-churn switch removed Nov 24 '26.)
+    // Whole PLG base churns at churnPct. (Lower-churn switch removed Nov 24 '26.)
     return p.plg.churnPct / 100;
   }
   // PLG new ARR % of the opening base in month m (held, then stepped down to a floor).
@@ -315,9 +324,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var H = horizon || p.horizon;
     var plgChurn = plgChurnRate(p);
     var aiG = p.ai.growthPct / 100, ndr = slgNdr(p);
-    var mk = p.marketing;
 
-    var plgArr = p.plg.subArr, mktArr = 0, aiArr = p.ai.arr, slgArr = p.slg.arr;
+    var plgArr = p.plg.subArr, aiArr = p.ai.arr, slgArr = p.slg.arr;
     // Jacobs is collected as scheduled one-off payments (collections), so it is excluded here.
     var slgCashBase = slgArr - p.slg.jacobsArr;
     var oc = p.openAiCredit;
@@ -330,7 +338,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       if (m > 1 && (m - 1) % 12 === 0) { slgArr *= ndr; slgCashBase *= ndr; }
 
       var cashOpen = cash;
-      var inPlg = plgArr / 12, inMkt = mktArr / 12, inAi = aiArr / 12, inSlgBase = slgCashBase / 12;
+      var inPlg = plgArr / 12, inAi = aiArr / 12, inSlgBase = slgCashBase / 12;
 
       var inDeals = 0, dealArr = 0;
       for (var i = 0; i < deals.length; i++) {
@@ -367,33 +375,31 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       var inFunding = p.funding.on && m === p.funding.month ? p.funding.amount : 0;
       var outSalary = p.salary.on && m >= p.salary.startMonth ? p.salary.monthly : 0;
 
-      var mktActive = !!mk.on && m >= mk.startMonth && m < mk.startMonth + mk.months;
-      var outBase = p.costs.base, outAnthropic = p.costs.anthropic, outMkt = mktActive ? mk.monthlySpend : 0;
+      var outBase = p.costs.base, outAnthropic = p.costs.anthropic;
       // OpenAI credits offset inference cost, spread evenly; never more than that month's inference cost.
       var creditActive = !!oc.on && m >= oc.startMonth && m < oc.startMonth + oc.months;
       var creditOffset = creditActive ? Math.min(oc.total / oc.months, outAnthropic) : 0;
 
-      var inflow = inPlg + inMkt + inAi + inSlgBase + inDeals + inSlgOrg + inOneOff + inFunding;
-      var outflow = outBase + outAnthropic - creditOffset + outMkt + outSalary;
+      var inflow = inPlg + inAi + inSlgBase + inDeals + inSlgOrg + inOneOff + inFunding;
+      var outflow = outBase + outAnthropic - creditOffset + outSalary;
       cash = cashOpen + inflow - outflow;
 
       // End-of-month ARR movements
       var plgNew = plgNewArr(p, m, plgArr);
       plgArr = Math.max(plgArr * (1 - plgChurn) + plgNew, 0);
-      mktArr = mktArr * (1 - plgChurn) + (mktActive ? mk.monthlySpend * mk.roi : 0);
       aiArr = aiArr * (1 + aiG);
 
       rows.push({
         m: m,
         cashOpen: cashOpen,
-        inPlg: inPlg, inMkt: inMkt, inAi: inAi, inSlgBase: inSlgBase, inDeals: inDeals, inSlgOrg: inSlgOrg, inOneOff: inOneOff, inFunding: inFunding,
+        inPlg: inPlg, inAi: inAi, inSlgBase: inSlgBase, inDeals: inDeals, inSlgOrg: inSlgOrg, inOneOff: inOneOff, inFunding: inFunding,
         inflow: inflow,
-        outBase: outBase, outAnthropic: outAnthropic, creditOffset: creditOffset, outMkt: outMkt, outSalary: outSalary,
+        outBase: outBase, outAnthropic: outAnthropic, creditOffset: creditOffset, outSalary: outSalary,
         outflow: outflow,
         net: inflow - outflow,
         cashClose: cash,
-        arrPlg: plgArr, arrMkt: mktArr, arrAi: aiArr, arrSlgBase: slgArr, arrDeals: dealArr, arrSlgOrg: slgOrgArr,
-        arrTotal: plgArr + mktArr + aiArr + slgArr + dealArr + slgOrgArr
+        arrPlg: plgArr, arrAi: aiArr, arrSlgBase: slgArr, arrDeals: dealArr, arrSlgOrg: slgOrgArr,
+        arrTotal: plgArr + aiArr + slgArr + dealArr + slgOrgArr
       });
     }
     return rows;
@@ -494,9 +500,31 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   // All month positions derive from START, so a roll-forward edits START and the dates below.
   var START = { year: 2026, month0: 10 }; // month 1 = Nov '26 (opening balances = Oct '26 ME)
   function at(year, month0) { return monthIndex(START, year, month0); }
-  // Deal cash, relative to the close month: 50% at +2 mo, 25% at +4, 25% at +7
-  // (a Dec '26 close collects Feb / Apr / Jul '27).
-  var DEAL_SCHEDULE = [{ offset: 2, pct: 50 }, { offset: 4, pct: 25 }, { offset: 7, pct: 25 }];
+  // Deal cash, relative to the close month: 50% at +2 mo, 50% at +5 (Nov 24 '26; was 50/25/25 at +2/+4/+7)
+  // (a Dec '26 close collects Feb / May '27).
+  var DEAL_SCHEDULE = [{ offset: 2, pct: 50 }, { offset: 5, pct: 50 }];
+  // Added customer lines: 100% of the annual value collected 60 days (2 months) after the month.
+  var CUSTOM_SCHEDULE = [{ offset: 2, pct: 100 }];
+  var CUSTOM_MAX_MONTH = 14; // Dec '27: last month offered for an added line
+
+  // Returns a copy of p with one added customer line (switched on). Throws on bad input.
+  function addCustomDeal(p, label, arr, month) {
+    var q = clone(p), n = 1;
+    q.deals.forEach(function (d) { if (d.custom) n = Math.max(n, Number(d.id.slice(7)) + 1); });
+    var lbl = typeof label === 'string' ? label.trim() : label;
+    intIn(month, 1, CUSTOM_MAX_MONTH, 'month');
+    fin(arr, 'arr');
+    if (!(arr > 0)) throw new RangeError('arr must be > 0');
+    var id = 'custom-' + n;
+    q.deals.push({ id: id, group: id, label: lbl, arr: arr, on: true, closeMonth: month, schedule: clone(CUSTOM_SCHEDULE), custom: true });
+    validate(q);
+    return q;
+  }
+  function removeCustomDeal(p, id) {
+    var q = clone(p);
+    q.deals = q.deals.filter(function (d) { return !(d.custom && d.id === id); });
+    return q;
+  }
   function defaults() {
     // group: deals sharing a group are switched on/off together (e.g. "Others" in two tranches)
     function deal(id, group, label, arr, closeMonth) {
@@ -513,7 +541,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       // OpenAI credits received: $50K set off once against Dec '26 inference cost (Nov 24)
       openAiCredit: { on: true, total: 50000, startMonth: at(2026, 11), months: 1 },
       // PLG new ARR: 30% of base for 6 months (Nov-Apr), then -2.5 pts/mo to a 25% floor (from Jun '27)
-      // Nov-Jan: fixed $70K/mo new PLG ARR before churn (~125 users x $45 x 12); marketing ARR comes on top.
+      // Nov-Jan: fixed $70K/mo new PLG ARR before churn (~125 users x $45 x 12).
       plg: { subArr: 142557, newFixedArr: 70000, newFixedMonths: 3, newPct: 30, newHoldMonths: 6, newStepPts: 2.5, newFloorPct: 25,
              churnPct: 20 },
       ai: { arr: 78300, growthPct: 5 },           // SAAS KPIs row 12, Oct '26
@@ -539,7 +567,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
         deal('others-1', 'others', 'Others', 37500, at(2026, 11)),    // Dec '26 (50%)
         deal('others-2', 'others', 'Others', 37500, at(2027, 0))      // Jan '27 (50%)
       ],
-      marketing: { on: false, monthlySpend: 35000, startMonth: at(2026, 10), months: 3, roi: 1 },
       // Salary appraisal: +$12.5K/mo ($150K/yr) from Jan '27; on in every preset (switched by setSwitches)
       salary: { on: false, monthly: 12500, startMonth: at(2027, 0) },
       // Funding round: $5M cash in Mar '27; off in every preset, a checkbox only
@@ -551,20 +578,19 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   // OpenAI credits are always on (not a scenario switch). Anthropic $75K in every preset (Nov 24 '26).
 // Salary appraisal is on in every preset; funding is off in every preset (ticking it = Custom).
   var SCENARIOS = [
-    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, marketing: false, salary: true, funding: false },
-    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, marketing: false, salary: true, funding: false },
-    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, marketing: true, salary: true, funding: false }
+    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
+    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
+    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false }
   ];
   function scenarioById(id) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].id === id) return SCENARIOS[i];
     throw new RangeError('unknown scenario ' + id);
   }
   function setSwitches(q, s) {
-    q.deals.forEach(function (d) { d.on = s.deals.indexOf(d.group) !== -1; });
+    q.deals.forEach(function (d) { if (!d.custom) d.on = s.deals.indexOf(d.group) !== -1; }); // added lines untouched
     q.collections.forEach(function (c) { if (c.id === 'openingAr') c.on = s.openingAr; });
     q.costs.anthropic = s.anthropic;
     q.openAiCredit.on = s.openAi;
-    q.marketing.on = s.marketing;
     q.salary.on = s.salary;
     q.funding.on = s.funding;
   }
@@ -581,6 +607,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   return {
     SCENARIOS: SCENARIOS,
     applyScenario: applyScenario,
+    addCustomDeal: addCustomDeal,
+    removeCustomDeal: removeCustomDeal,
+    CUSTOM_MAX_MONTH: CUSTOM_MAX_MONTH,
     matchScenario: matchScenario,
     plgNewRate: plgNewRate,
     plgNewArr: plgNewArr,
@@ -614,7 +643,6 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   'use strict';
   var E = window.RunwayEngine;
   var DEFAULT_SCENARIO = 'base';
-  var FIXED_CLOSE = ['lt', 'carwash']; // deal groups locked to their default close month (Dec '26)
   var P = E.applyScenario(E.defaults(), DEFAULT_SCENARIO);
   var DEC27 = E.monthIndex(P.start, 2027, 11);
   var CASH_CLR = '#f59e0b'; // amber, stands out against the blue ARR bars
@@ -631,7 +659,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   }
   function lbl(m) { return E.monthLabel(P.start, m); }
   function months(x) { // one decimal, e.g. 6.5 months (days shown separately)
-    if (x === Infinity) return '10+ years';
+    if (x === Infinity) return 'Self-sustaining'; // cash never runs out in the 10-year model
     var t = (Math.round(x * 10) / 10).toFixed(1);
     return t + (t === '1.0' ? ' month' : ' months');
   }
@@ -660,18 +688,15 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       var idx = [], total = 0;
       P.deals.forEach(function (d, i) { if (d.group === g) { idx.push(i); total += d.arr; } });
       var first = P.deals[idx[0]];
-      return { key: 'deal-' + g, group: 'revenue', name: first.label + ' deal', amount: '+' + f$(total) + ' ARR',
+      return { key: 'deal-' + g, group: 'revenue', name: first.custom ? first.label : first.label + ' deal', amount: '+' + f$(total) + ' ARR',
         on: idx.every(function (i) { return P.deals[i].on; }),
-        // L&T and Car Wash are fixed in Dec '26 (no close-month dropdown); others can move.
-        closeSelect: idx.length === 1 && FIXED_CLOSE.indexOf(g) === -1 ? idx[0] : undefined,
-        fixedClose: idx.length === 1 && FIXED_CLOSE.indexOf(g) !== -1 ? lbl(P.deals[idx[0]].closeMonth) : null,
+        closeSelect: idx.length === 1 ? idx[0] : undefined,
+        removeId: first.custom ? first.id : null,
         tranches: idx.length > 1 ? idx.map(function (i) { return f$(P.deals[i].arr) + ' ' + lbl(P.deals[i].closeMonth); }).join(' + ') : null,
         set: function (q, v) { idx.forEach(function (i) { q.deals[i].on = v; }); } };
     });
     // Opening receivables are always collected (every scenario); described in the notes, no switch.
     var costs = [
-      { key: 'mkt', group: 'costs', name: 'Marketing push', amount: f$(P.marketing.monthlySpend) + '/mo × ' + P.marketing.months, on: P.marketing.on,
-        set: function (q, v) { q.marketing.on = v; } },
       { key: 'salary', group: 'costs', name: 'Salary appraisal', amount: f$(P.salary.monthly) + '/mo from ' + lbl(P.salary.startMonth), on: P.salary.on,
         set: function (q, v) { q.salary.on = v; } },
       { key: 'funding', group: 'costs', name: 'Funding round', amount: '+' + f$(P.funding.amount) + ' cash ' + lbl(P.funding.month), on: P.funding.on,
@@ -689,7 +714,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     } else if (r.reachedWith && !r.reachedWithout) parts.push('<span class="good">needed to reach $1M before cash runs out</span>');
     else if (!r.reachedWith && r.reachedWithout) parts.push('<span class="badc">cash runs out before $1M with this</span>');
     else parts.push('cash still runs out before $1M');
-    if (r.with.runout === null && r.without.runout !== null) parts.push('<span class="good">cash lasts 10+ years (runs out ' + outMonth(r.without.runout) + ' without)</span>');
+    if (r.with.runout === null && r.without.runout !== null) parts.push('<span class="good">Cashflow +ve</span>');
     else if (r.with.runout !== null && r.without.runout === null) parts.push('<span class="badc">cash runs out ' + outMonth(r.with.runout) + ' (lasts 10+ years without)</span>');
     if (r.runoutDelta !== null && Math.abs(r.runoutDelta) > 1e-9) {
       var days = E.monthsToDays(r.runoutDelta);
@@ -704,9 +729,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       var box = document.getElementById('sw-' + g);
       box.innerHTML = list.filter(function (s) { return s.group === g; }).map(function (s) {
         var close = s.closeSelect !== undefined
-          ? ' <span style="color:var(--muted);font-size:12px">closes</span> <select data-close="' + s.closeSelect + '">' + closeOptions(P.deals[s.closeSelect].closeMonth) + '</select>'
-          : s.tranches ? ' <span style="color:var(--muted);font-size:12px">' + esc(s.tranches) + '</span>'
-          : s.fixedClose ? ' <span style="color:var(--muted);font-size:12px">closes ' + esc(s.fixedClose) + '</span>' : '';
+          ? ' <span style="color:var(--muted);font-size:12px">closes</span> <select data-close="' + s.closeSelect + '">' +
+            closeOptions(P.deals[s.closeSelect].closeMonth, s.removeId ? E.CUSTOM_MAX_MONTH : 6) + '</select>'
+          : s.tranches ? ' <span style="color:var(--muted);font-size:12px">' + esc(s.tranches) + '</span>' : '';
+        if (s.removeId) close += ' <button type="button" class="rm" title="Remove this line" data-remove="' + esc(s.removeId) + '">×</button>';
         return '<div class="sw"><input type="checkbox" id="sw-' + s.key + '"' + (s.on ? ' checked' : '') + '>' +
           '<label for="sw-' + s.key + '">' + esc(s.name) + close + '</label>' +
           '<span class="amt">' + esc(s.amount) + '</span>' +
@@ -719,6 +745,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       });
       var r = E.leverImpact(P, function (q) { s.set(q, true); }, function (q) { s.set(q, false); });
       document.getElementById('eff-' + s.key).innerHTML = effectText(r);
+    });
+    document.querySelectorAll('button[data-remove]').forEach(function (b) {
+      b.addEventListener('click', function (e) { e.preventDefault(); P = E.removeCustomDeal(P, b.dataset.remove); refresh(); });
     });
     document.querySelectorAll('select[data-close]').forEach(function (sel) {
       sel.addEventListener('change', function () {
@@ -748,20 +777,21 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       b.addEventListener('click', function () { P = E.applyScenario(P, b.dataset.preset); refresh(); });
     });
     var s = cur ? E.SCENARIOS.filter(function (x) { return x.id === cur; })[0] : null;
-    setText('preset-note', s ? s.label + ': ' + describe(s) : 'Custom mix: you\'ve changed switches since picking a scenario.');
+    var added = P.deals.filter(function (d) { return d.custom && d.on; }).length;
+    var extra = added ? ' + ' + added + ' added line' + (added === 1 ? '' : 's') + '.' : '';
+    setText('preset-note', s ? s.label + ': ' + describe(s) + extra : 'Custom mix: you\'ve changed switches since picking a scenario.' + extra);
   }
   function describe(s) {
     var names = { itc: 'ITC', lt: 'L&T', carwash: 'Car Wash', others: 'Others' };
     var parts = [s.deals.length ? s.deals.map(function (g) { return names[g] || g; }).join(', ') : 'no new deals'];
     parts.push('Anthropic ' + f$(s.anthropic));
-    if (s.marketing) parts.push('marketing push');
     if (s.salary) parts.push('salary appraisal');
     if (s.funding) parts.push('funding round');
     return parts.join(' · ') + '.';
   }
-  function closeOptions(sel) {
+  function closeOptions(sel, max) {
     var h = '';
-    for (var m = 1; m <= 6; m++) h += '<option value="' + m + '"' + (m === sel ? ' selected' : '') + '>' + esc(lbl(m)) + '</option>';
+    for (var m = 1; m <= max; m++) h += '<option value="' + m + '"' + (m === sel ? ' selected' : '') + '>' + esc(lbl(m)) + '</option>';
     return h;
   }
 
@@ -772,8 +802,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var out = outMonth(a.runout), big, small;
     if (a.status === 'ok') {
       box.className = 'answer ok';
-      big = 'We reach ' + f$(p.targetArr) + ' ARR in ' + lbl(a.hit) + ', with ' + f$(a.cashAtHit) + ' in the bank and ' + months(a.runwayAtHit) + ' of runway left.';
-      small = out ? 'At current burn, cash would run out in ' + out + '.' : 'Cash does not run out within 10 years.';
+      big = 'We reach ' + f$(p.targetArr) + ' ARR in ' + lbl(a.hit) + ', with ' + f$(a.cashAtHit) + (a.runwayAtHit === Infinity ? ' in the bank and are self-sustaining.' : ' in the bank and ' + months(a.runwayAtHit) + ' of runway left.');
+      small = out ? 'At current burn, cash would run out in ' + out + '.' : 'Cash does not run out within the 10-year model.';
     } else if (a.status === 'low-runway') {
       box.className = 'answer warn';
       big = '⚠ We reach ' + f$(p.targetArr) + ' ARR in ' + lbl(a.hit) + ', but with only ' + months(a.runwayAtHit) + ' of runway left (' + f$(a.cashAtHit) + ').';
@@ -799,7 +829,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     setText('t-rw', ok ? months(a.runwayAtHit) : '—');
     document.getElementById('t-rw').style.color = color;
     setText('t-rw-n', ok && a.runwayAtHit !== Infinity ? E.monthsToDays(a.runwayAtHit) + ' days' : '');
-    setText('t-out', out || '10+ years');
+    setText('t-out', out || 'Self-sustaining');
     document.getElementById('t-out').style.color = a.runout !== null && a.runout < 12 ? 'var(--rs)' : 'var(--text)';
     setText('t-out-n', a.runout !== null ? months(a.runout) + ' (' + E.monthsToDays(a.runout) + ' days) from Oct \'26 month-end' : '');
   }
@@ -872,7 +902,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     ds[1].data = w.map(function () { return P.targetArr; });
     ds[2].data = w.map(function (r) { return r.arrSlgBase + r.arrSlgOrg; });
     ds[3].data = w.map(function (r) { return r.arrDeals; });
-    ds[4].data = w.map(function (r) { return r.arrPlg + r.arrMkt; });
+    ds[4].data = w.map(function (r) { return r.arrPlg; });
     ds[5].data = w.map(function (r) { return r.arrAi; });
     chart.update();
   }
@@ -901,9 +931,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     var others = groupParts('others');
     var coll = function (id) { return P.collections.filter(function (c) { return c.id === id; })[0]; };
     var tgt = P.targetArr >= 1e6 ? '$' + +(P.targetArr / 1e6).toFixed(2) + 'M' : f$(P.targetArr);
-    var ar = coll('openingAr'), jac = coll('jacobs'), oc = P.openAiCredit, mk = P.marketing;
+    var ar = coll('openingAr'), jac = coll('jacobs'), oc = P.openAiCredit;
     var notes = [
-      ['Cash', '= money in (plus the funding round, if on) − costs, Anthropic, marketing and the salary appraisal (if on). No interest income or other cost growth.'],
+      ['Cash', '= money in (plus the funding round, if on) − costs, Anthropic and the salary appraisal (if on). No interest income or other cost growth.'],
       ['PLG', 'pays monthly and churns ' + churn + '%/mo on the whole PLG base. ' +
         (g.newFixedMonths > 0 ? 'New ARR is a fixed ' + f$(g.newFixedArr) + '/mo before churn for ' + lbl(1) +
           (g.newFixedMonths > 1 ? '–' + lbl(g.newFixedMonths) : '') + ', then ' : 'New ARR is ') +
@@ -921,8 +951,10 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       ['Deals', 'ARR counts from the close month. Cash comes ' + sch.map(function (x) { return x.pct; }).join('/') + '% at ' +
         sch.map(function (x) { return '+' + x.offset; }).join('/') + ' months; renews at ' + ndr + '% after 12 months. Others = ' +
         others.map(function (d) { return f$(d.arr) + ' ' + lbl(d.closeMonth); }).join(' + ') + '.'],
-      ['Marketing', f$(mk.monthlySpend) + '/mo × ' + mk.months + ' from ' + lbl(mk.startMonth) + '. ' +
-        'Each $1 buys $' + mk.roi + ' of PLG ARR on top of the PLG new ARR above; it churns at the PLG rate.'],
+      ['Added lines', P.deals.some(function (d) { return d.custom; })
+        ? P.deals.filter(function (d) { return d.custom; }).map(function (d) { return d.label + ' ' + f$(d.arr) + ' ' + lbl(d.closeMonth) + (d.on ? '' : ' (off)'); }).join('; ') +
+          '. ARR counts from the month; cash in full 60 days later; renews yearly at ' + ndr + '%. Not saved: cleared on reload.'
+        : 'none. Use "+ Add" under the deals for a customer line: ARR from its month, cash in full 60 days later, renewing yearly at ' + ndr + '%.'],
       ['Salary appraisal', f$(P.salary.monthly) + '/mo (' + f$(P.salary.monthly * 12) + ' a year) of extra cost from ' + lbl(P.salary.startMonth) +
         ', on in every scenario. Cash only: it does not change ARR.'],
       ['Funding round', f$(P.funding.amount) + ' lands in ' + lbl(P.funding.month) + ' when ticked; off in every scenario. Cash only: it extends runway but does not move the ' + tgt + ' date.'],
@@ -953,8 +985,24 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       b.addEventListener('click', function () { var v = Number(b.dataset.v); update(function (q) { q.costs.anthropic = v; }); });
     });
     bindInputs();
+    bindAddLine();
     initCharts();
     refresh();
+  }
+
+  // "+ Add" customer line: description, month, ARR. Invalid input is flagged and nothing is added.
+  function bindAddLine() {
+    var desc = document.getElementById('add-desc'), mon = document.getElementById('add-month'), arr = document.getElementById('add-arr');
+    mon.innerHTML = closeOptions(E.monthIndex(P.start, 2026, 11), E.CUSTOM_MAX_MONTH); // default Dec '26
+    document.getElementById('add-btn').addEventListener('click', function () {
+      var label = desc.value.trim(), amount = arr.value.trim() === '' ? NaN : Number(arr.value), month = Number(mon.value);
+      desc.classList.toggle('bad', label === '');
+      arr.classList.toggle('bad', !(amount > 0));
+      if (label === '' || !(amount > 0)) return;
+      try { P = E.addCustomDeal(P, label, amount, month); } catch (e) { arr.classList.add('bad'); return; }
+      desc.value = ''; arr.value = '';
+      refresh();
+    });
   }
   document.addEventListener('DOMContentLoaded', init);
 })();

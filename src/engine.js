@@ -4,14 +4,12 @@
  *
  * TIMING CONVENTIONS (month m = 1 is the first modelled month):
  *  - Cash: closing(m) = opening(m) + inflows(m) - outflows(m).
- *  - Monthly-billed streams (PLG subscriptions, marketing-acquired PLG, AI credits, SLG opening
+ *  - Monthly-billed streams (PLG subscriptions, AI credits, SLG opening
  *    base) collect ARR_open(m) / 12 in month m, where ARR_open(m) = ARR at the end of m-1.
  *  - PLG subscriptions: ARR_close(m) = ARR_open(m) * (1 + new%(m) - churn%), both on the opening base.
  *    new%(m) = newPct for months 1..newHoldMonths, then falls newStepPts per month to newFloorPct.
  *    Exception: for months 1..newFixedMonths, new ARR is a fixed dollar amount (newFixedArr) instead
  *    of new% x base, i.e. ARR_close(m) = ARR_open(m) * (1 - churn%) + newFixedArr.
- *  - Marketing: on top of PLG new ARR (fixed-$ or %). Spend leaves cash in month m; the acquired ARR (spend x ROI) is counted in
- *    ARR_close(m) and collects monthly from m+1. That cohort only churns (no new% on it).
  *  - AI credits: ARR_close(m) = ARR_open(m) * (1 + growth%).
  *  - SLG opening base: steps by NDR = 1 - churn% + expansion% at the start of months 13, 25, ...
  *    Monthly cash = (ARR - Jacobs ARR) / 12; Jacobs is collected only via its scheduled payments.
@@ -23,6 +21,8 @@
  *  - SLG deals: ARR counted from the end of the close month. Cash follows the schedule
  *    (offsets in months from close, % of contract value). Each deal renews every 12 months
  *    at value x NDR, re-collected on the same relative schedule.
+ *  - Added customer lines (custom: true): a deal with 100% of cash collected 2 months (60 days)
+ *    after its month, renewing x NDR. Presets never switch them (see setSwitches).
  *  - Salary appraisal: extra monthly cost from startMonth onward (cash only, no ARR effect).
  *  - Funding: one-off cash inflow in its month (cash only, no ARR effect).
  *  - Runway: fractional month where cash first reaches <= 0, interpolated inside that month.
@@ -38,6 +38,7 @@
   'use strict';
 
   var DAYS_PER_MONTH = 30.4375;
+  var MAX_LABEL = 60;  // max characters in a deal / added-line description
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var EXT_HORIZON = 120; // months simulated for analysis (runway / $1M beyond the display horizon)
   var ALERT_MONTHS = 4;  // amber warning when less than this much runway is left at $1M (~122 days)
@@ -112,6 +113,7 @@
         pctSum += s.pct;
       });
       if (Math.abs(pctSum - 100) > 1e-9) throw new RangeError('deals[' + i + '] schedule must total 100%');
+      if (typeof d.label !== 'string' || d.label.trim() === '' || d.label.length > MAX_LABEL) throw new RangeError('deals[' + i + '].label must be 1-' + MAX_LABEL + ' characters');
     });
     if (p.slgGrowth) {
       nonNeg(p.slgGrowth.pct, 'slgGrowth.pct');
@@ -123,16 +125,11 @@
     intIn(sal.startMonth, 1, EXT_HORIZON, 'salary.startMonth');
     nonNeg(p.funding.amount, 'funding.amount');
     intIn(p.funding.month, 1, EXT_HORIZON, 'funding.month');
-    var mk = p.marketing;
-    nonNeg(mk.monthlySpend, 'marketing.monthlySpend');
-    nonNeg(mk.roi, 'marketing.roi');
-    intIn(mk.startMonth, 1, EXT_HORIZON, 'marketing.startMonth');
-    intIn(mk.months, 0, EXT_HORIZON, 'marketing.months');
     return p;
   }
 
   function plgChurnRate(p) {
-    // Whole PLG base (and marketing ARR) churns at churnPct. (Lower-churn switch removed Nov 24 '26.)
+    // Whole PLG base churns at churnPct. (Lower-churn switch removed Nov 24 '26.)
     return p.plg.churnPct / 100;
   }
   // PLG new ARR % of the opening base in month m (held, then stepped down to a floor).
@@ -155,9 +152,8 @@
     var H = horizon || p.horizon;
     var plgChurn = plgChurnRate(p);
     var aiG = p.ai.growthPct / 100, ndr = slgNdr(p);
-    var mk = p.marketing;
 
-    var plgArr = p.plg.subArr, mktArr = 0, aiArr = p.ai.arr, slgArr = p.slg.arr;
+    var plgArr = p.plg.subArr, aiArr = p.ai.arr, slgArr = p.slg.arr;
     // Jacobs is collected as scheduled one-off payments (collections), so it is excluded here.
     var slgCashBase = slgArr - p.slg.jacobsArr;
     var oc = p.openAiCredit;
@@ -170,7 +166,7 @@
       if (m > 1 && (m - 1) % 12 === 0) { slgArr *= ndr; slgCashBase *= ndr; }
 
       var cashOpen = cash;
-      var inPlg = plgArr / 12, inMkt = mktArr / 12, inAi = aiArr / 12, inSlgBase = slgCashBase / 12;
+      var inPlg = plgArr / 12, inAi = aiArr / 12, inSlgBase = slgCashBase / 12;
 
       var inDeals = 0, dealArr = 0;
       for (var i = 0; i < deals.length; i++) {
@@ -207,33 +203,31 @@
       var inFunding = p.funding.on && m === p.funding.month ? p.funding.amount : 0;
       var outSalary = p.salary.on && m >= p.salary.startMonth ? p.salary.monthly : 0;
 
-      var mktActive = !!mk.on && m >= mk.startMonth && m < mk.startMonth + mk.months;
-      var outBase = p.costs.base, outAnthropic = p.costs.anthropic, outMkt = mktActive ? mk.monthlySpend : 0;
+      var outBase = p.costs.base, outAnthropic = p.costs.anthropic;
       // OpenAI credits offset inference cost, spread evenly; never more than that month's inference cost.
       var creditActive = !!oc.on && m >= oc.startMonth && m < oc.startMonth + oc.months;
       var creditOffset = creditActive ? Math.min(oc.total / oc.months, outAnthropic) : 0;
 
-      var inflow = inPlg + inMkt + inAi + inSlgBase + inDeals + inSlgOrg + inOneOff + inFunding;
-      var outflow = outBase + outAnthropic - creditOffset + outMkt + outSalary;
+      var inflow = inPlg + inAi + inSlgBase + inDeals + inSlgOrg + inOneOff + inFunding;
+      var outflow = outBase + outAnthropic - creditOffset + outSalary;
       cash = cashOpen + inflow - outflow;
 
       // End-of-month ARR movements
       var plgNew = plgNewArr(p, m, plgArr);
       plgArr = Math.max(plgArr * (1 - plgChurn) + plgNew, 0);
-      mktArr = mktArr * (1 - plgChurn) + (mktActive ? mk.monthlySpend * mk.roi : 0);
       aiArr = aiArr * (1 + aiG);
 
       rows.push({
         m: m,
         cashOpen: cashOpen,
-        inPlg: inPlg, inMkt: inMkt, inAi: inAi, inSlgBase: inSlgBase, inDeals: inDeals, inSlgOrg: inSlgOrg, inOneOff: inOneOff, inFunding: inFunding,
+        inPlg: inPlg, inAi: inAi, inSlgBase: inSlgBase, inDeals: inDeals, inSlgOrg: inSlgOrg, inOneOff: inOneOff, inFunding: inFunding,
         inflow: inflow,
-        outBase: outBase, outAnthropic: outAnthropic, creditOffset: creditOffset, outMkt: outMkt, outSalary: outSalary,
+        outBase: outBase, outAnthropic: outAnthropic, creditOffset: creditOffset, outSalary: outSalary,
         outflow: outflow,
         net: inflow - outflow,
         cashClose: cash,
-        arrPlg: plgArr, arrMkt: mktArr, arrAi: aiArr, arrSlgBase: slgArr, arrDeals: dealArr, arrSlgOrg: slgOrgArr,
-        arrTotal: plgArr + mktArr + aiArr + slgArr + dealArr + slgOrgArr
+        arrPlg: plgArr, arrAi: aiArr, arrSlgBase: slgArr, arrDeals: dealArr, arrSlgOrg: slgOrgArr,
+        arrTotal: plgArr + aiArr + slgArr + dealArr + slgOrgArr
       });
     }
     return rows;
@@ -334,9 +328,31 @@
   // All month positions derive from START, so a roll-forward edits START and the dates below.
   var START = { year: 2026, month0: 10 }; // month 1 = Nov '26 (opening balances = Oct '26 ME)
   function at(year, month0) { return monthIndex(START, year, month0); }
-  // Deal cash, relative to the close month: 50% at +2 mo, 25% at +4, 25% at +7
-  // (a Dec '26 close collects Feb / Apr / Jul '27).
-  var DEAL_SCHEDULE = [{ offset: 2, pct: 50 }, { offset: 4, pct: 25 }, { offset: 7, pct: 25 }];
+  // Deal cash, relative to the close month: 50% at +2 mo, 50% at +5 (Nov 24 '26; was 50/25/25 at +2/+4/+7)
+  // (a Dec '26 close collects Feb / May '27).
+  var DEAL_SCHEDULE = [{ offset: 2, pct: 50 }, { offset: 5, pct: 50 }];
+  // Added customer lines: 100% of the annual value collected 60 days (2 months) after the month.
+  var CUSTOM_SCHEDULE = [{ offset: 2, pct: 100 }];
+  var CUSTOM_MAX_MONTH = 14; // Dec '27: last month offered for an added line
+
+  // Returns a copy of p with one added customer line (switched on). Throws on bad input.
+  function addCustomDeal(p, label, arr, month) {
+    var q = clone(p), n = 1;
+    q.deals.forEach(function (d) { if (d.custom) n = Math.max(n, Number(d.id.slice(7)) + 1); });
+    var lbl = typeof label === 'string' ? label.trim() : label;
+    intIn(month, 1, CUSTOM_MAX_MONTH, 'month');
+    fin(arr, 'arr');
+    if (!(arr > 0)) throw new RangeError('arr must be > 0');
+    var id = 'custom-' + n;
+    q.deals.push({ id: id, group: id, label: lbl, arr: arr, on: true, closeMonth: month, schedule: clone(CUSTOM_SCHEDULE), custom: true });
+    validate(q);
+    return q;
+  }
+  function removeCustomDeal(p, id) {
+    var q = clone(p);
+    q.deals = q.deals.filter(function (d) { return !(d.custom && d.id === id); });
+    return q;
+  }
   function defaults() {
     // group: deals sharing a group are switched on/off together (e.g. "Others" in two tranches)
     function deal(id, group, label, arr, closeMonth) {
@@ -353,7 +369,7 @@
       // OpenAI credits received: $50K set off once against Dec '26 inference cost (Nov 24)
       openAiCredit: { on: true, total: 50000, startMonth: at(2026, 11), months: 1 },
       // PLG new ARR: 30% of base for 6 months (Nov-Apr), then -2.5 pts/mo to a 25% floor (from Jun '27)
-      // Nov-Jan: fixed $70K/mo new PLG ARR before churn (~125 users x $45 x 12); marketing ARR comes on top.
+      // Nov-Jan: fixed $70K/mo new PLG ARR before churn (~125 users x $45 x 12).
       plg: { subArr: 142557, newFixedArr: 70000, newFixedMonths: 3, newPct: 30, newHoldMonths: 6, newStepPts: 2.5, newFloorPct: 25,
              churnPct: 20 },
       ai: { arr: 78300, growthPct: 5 },           // SAAS KPIs row 12, Oct '26
@@ -379,7 +395,6 @@
         deal('others-1', 'others', 'Others', 37500, at(2026, 11)),    // Dec '26 (50%)
         deal('others-2', 'others', 'Others', 37500, at(2027, 0))      // Jan '27 (50%)
       ],
-      marketing: { on: false, monthlySpend: 35000, startMonth: at(2026, 10), months: 3, roi: 1 },
       // Salary appraisal: +$12.5K/mo ($150K/yr) from Jan '27; on in every preset (switched by setSwitches)
       salary: { on: false, monthly: 12500, startMonth: at(2027, 0) },
       // Funding round: $5M cash in Mar '27; off in every preset, a checkbox only
@@ -391,20 +406,19 @@
   // OpenAI credits are always on (not a scenario switch). Anthropic $75K in every preset (Nov 24 '26).
 // Salary appraisal is on in every preset; funding is off in every preset (ticking it = Custom).
   var SCENARIOS = [
-    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, marketing: false, salary: true, funding: false },
-    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, marketing: false, salary: true, funding: false },
-    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, marketing: true, salary: true, funding: false }
+    { id: 'bear', label: 'Bear', deals: ['lt', 'others'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
+    { id: 'base', label: 'Base', deals: ['lt', 'others', 'carwash'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false },
+    { id: 'bull', label: 'Bull', deals: ['lt', 'others', 'carwash', 'itc'], openingAr: true, anthropic: 75000, openAi: true, salary: true, funding: false }
   ];
   function scenarioById(id) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].id === id) return SCENARIOS[i];
     throw new RangeError('unknown scenario ' + id);
   }
   function setSwitches(q, s) {
-    q.deals.forEach(function (d) { d.on = s.deals.indexOf(d.group) !== -1; });
+    q.deals.forEach(function (d) { if (!d.custom) d.on = s.deals.indexOf(d.group) !== -1; }); // added lines untouched
     q.collections.forEach(function (c) { if (c.id === 'openingAr') c.on = s.openingAr; });
     q.costs.anthropic = s.anthropic;
     q.openAiCredit.on = s.openAi;
-    q.marketing.on = s.marketing;
     q.salary.on = s.salary;
     q.funding.on = s.funding;
   }
@@ -421,6 +435,9 @@
   return {
     SCENARIOS: SCENARIOS,
     applyScenario: applyScenario,
+    addCustomDeal: addCustomDeal,
+    removeCustomDeal: removeCustomDeal,
+    CUSTOM_MAX_MONTH: CUSTOM_MAX_MONTH,
     matchScenario: matchScenario,
     plgNewRate: plgNewRate,
     plgNewArr: plgNewArr,
