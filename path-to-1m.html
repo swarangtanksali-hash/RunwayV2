@@ -17,37 +17,37 @@
   --mono:'IBM Plex Mono','Courier New',monospace;--sans:'IBM Plex Sans',-apple-system,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:20px 76px 40px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:12px 76px 24px}
 .wrap{margin:0 auto}
-h1{font-size:20px;font-weight:600;letter-spacing:.01em}
-.sub{color:var(--muted);font-size:13px;margin-top:2px}
+h1{font-size:18px;font-weight:600;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:12px;margin-top:0}
 
-.answer{margin:8px 0 10px;border-radius:8px;padding:10px 16px;border:1px solid}
+.answer{margin:4px 0 8px;border-radius:8px;padding:7px 14px;border:1px solid}
 .answer.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.4)}
 .answer.warn{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.5)}
 .answer.bad{background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.5)}
-.answer .big{font-size:17px;font-weight:600;line-height:1.35}
+.answer .big{font-size:15px;font-weight:600;line-height:1.35}
 .answer.ok .big{color:var(--gs)}.answer.warn .big{color:var(--as)}.answer.bad .big{color:var(--rs)}
-.answer .small{font-size:13px;color:var(--dim);margin-top:4px}
-.today{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:6px}
+.answer .small{font-size:12px;color:var(--dim);margin-top:1px}
+.today{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:4px}
 .today .tile{background:var(--bg3)}
-.today .tile .val{font-size:18px}
-.bridge{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:13px}
-.bridge .row{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:4px 0}
+.today .tile .val{font-size:16px}
+.bridge{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:3px 12px;margin-bottom:8px;font-size:12px}
+.bridge .row{display:grid;grid-template-columns:40px 1fr;gap:8px;padding:3px 0}
 .bridge .row + .row{border-top:1px solid var(--border2)}
 .bridge .k{color:var(--muted);font-size:12px;padding-top:1px}
 .bridge .v{font-family:var(--mono);color:var(--dim)}
 .bridge .v b{color:var(--text);font-weight:600}
 .bridge .up{color:var(--gs)}.bridge .dn{color:var(--rs)}
 
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px}
-.split{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);gap:16px;align-items:start}
-.pin{position:sticky;top:12px}
-.pin .chart-box{height:calc(100vh - 90px)!important;min-height:380px}
-.tile{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
-.tile .lbl{font-size:12px;color:var(--muted)}
-.tile .val{font-family:var(--mono);font-size:20px;font-weight:600;line-height:1.2;margin-top:2px}
-.tile .note{font-size:12px;color:var(--muted);margin-top:2px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.split{display:grid;grid-template-columns:minmax(0,65fr) minmax(0,35fr);gap:16px;align-items:stretch}
+.pin{display:flex;flex-direction:column;margin-bottom:16px}
+.pin .chart-box{flex:1 1 0;min-height:300px;height:auto!important}
+.tile{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:5px 10px}
+.tile .lbl{font-size:11px;color:var(--muted)}
+.tile .val{font-family:var(--mono);font-size:17px;font-weight:600;line-height:1.2;margin-top:1px}
+.tile .note{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;align-items:start;border-top:1px solid var(--border);margin-top:8px}
 .cashtbl{overflow-x:auto}
@@ -56,13 +56,13 @@ h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .cashtbl tr.tot td{font-weight:600;color:var(--text);border-top:1px solid var(--border)}
 .cashtbl td.neg{background:rgba(239,68,68,.12);color:var(--rs)}
 .cashtbl th.hit{color:var(--gs)}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px}
 .card h2{font-size:15px;font-weight:600;margin-bottom:2px}
-.card .hint{font-size:12px;color:var(--muted);margin-bottom:10px}
-.group{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.card .hint{font-size:11px;color:var(--muted);margin-bottom:3px}
+.group{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:8px 0 4px;padding-bottom:3px;border-bottom:1px solid var(--border)}
 .group:first-of-type{margin-top:6px}
 
-.sw{display:grid;grid-template-columns:20px 1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)}
+.sw{display:grid;grid-template-columns:20px 1fr auto;gap:0 10px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border2)}
 .sw:last-child{border-bottom:none}
 .sw input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--blu)}
 .sw label{cursor:pointer;font-weight:500}
@@ -72,7 +72,7 @@ h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .sw .eff .chk{color:var(--muted);font-size:11px;margin-top:2px}
 .sw .rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;margin-left:4px}
 .sw .rm:hover{color:var(--rs)}
-.addline{display:grid;grid-template-columns:1fr auto 110px auto;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border2)}
+.addline{display:grid;grid-template-columns:1fr auto 110px auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border2)}
 .addline input,.addline select{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:12px;padding:4px 6px;font-family:var(--sans);min-width:0}
 .addline input.bad{border-color:var(--red)}
 .addline button{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:4px;font-size:12px;padding:4px 10px;cursor:pointer}
@@ -86,7 +86,9 @@ h1{font-size:20px;font-weight:600;letter-spacing:.01em}
 .btn:hover{color:var(--text)}
 
 .chart-box{position:relative;height:260px}
-#presets button{font-family:var(--sans);font-size:13px;padding:8px 4px}
+#presets{display:flex;gap:22px;flex-wrap:wrap;margin:6px 0 4px}
+#presets label{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:500}
+#presets input{width:16px;height:16px;cursor:pointer;accent-color:var(--blu)}
 .legend-note{font-size:12px;color:var(--muted);margin-top:6px}
 
 details{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px}
@@ -112,7 +114,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 .how li{margin:0 0 6px 18px;color:var(--dim);font-size:13px}
 
 @media (max-width:700px){.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:1000px){body{padding:20px 24px 40px}.split{grid-template-columns:1fr}.pin{position:static}.pin .chart-box{height:420px!important}.cols{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.today{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1000px){body{padding:20px 24px 40px}.split{grid-template-columns:1fr}.pin .chart-box{height:420px!important;flex:none}.cols{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.today{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:520px){body{padding:16px}.tiles{grid-template-columns:1fr 1fr}.tile .val{font-size:19px}.today{grid-template-columns:1fr 1fr}.answer .big{font-size:17px}}
 </style>
 </head>
@@ -148,9 +150,8 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 
 <div class="card">
     <h2>Pick a scenario</h2>
-    <div class="seg" id="presets" style="margin:6px 0 4px"></div>
-    <div class="hint" id="preset-note"></div>
-    <div class="hint">Or tick and untick switches yourself. Under each one: what it's worth on its own.</div>
+    <div id="presets"></div>
+    <div class="hint"><span id="preset-note"></span> Or tick switches yourself; each shows what it's worth on its own.</div>
 
     <div class="cols">
     <div id="sw-revenue"></div>
@@ -161,7 +162,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
       <input type="number" id="add-arr" min="0" step="1000" placeholder="ARR ($)" style="text-align:right">
       <button type="button" id="add-btn">+ Add</button>
     </div>
-    <div class="hint" id="add-hint">Added lines: cash in full 60 days after the month, renewing yearly. They stay when you switch scenarios but are not saved: they clear when the page reloads.</div>
+    <div class="hint" id="add-hint">Added lines: cash in full 60 days later, renewing yearly. Not saved: cleared on reload.</div>
     <div id="sw-costs"></div>
     <div class="sw" style="grid-template-columns:1fr;border-top:1px solid var(--border2)">
       <div><b style="font-weight:500">Anthropic AI cost per month</b></div>
@@ -178,9 +179,9 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
 </div>
 </div>
 
-<div class="card pin" style="margin-top:14px">
+<div class="card pin" style="margin-top:8px">
   <h2>$1Mn ARR Target &amp; Cash Balance</h2>
-  <div class="chart-box" style="height:460px"><canvas id="combo-chart"></canvas></div>
+  <div class="chart-box"><canvas id="combo-chart"></canvas></div>
 </div>
 </div>
 
@@ -863,10 +864,15 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
   function renderPresets() {
     var cur = E.matchScenario(P);
     document.getElementById('presets').innerHTML = E.SCENARIOS.map(function (s) {
-      return '<button type="button" data-preset="' + s.id + '"' + (s.id === cur ? ' class="on"' : '') + '>' + esc(s.label) + '</button>';
+      return '<label><input type="checkbox" data-preset="' + s.id + '"' + (s.id === cur ? ' checked' : '') + '>' + esc(s.label) + '</label>';
     }).join('');
-    document.querySelectorAll('#presets button').forEach(function (b) {
-      b.addEventListener('click', function () { P = E.applyScenario(P, b.dataset.preset); refresh(); });
+    // Ticks behave as one choice: ticking applies that preset (unticking the others); unticking the
+    // active one does nothing, since there is no "no scenario". Hand-changed switches = none ticked (Custom).
+    document.querySelectorAll('#presets input').forEach(function (b) {
+      b.addEventListener('change', function () {
+        if (b.checked) P = E.applyScenario(P, b.dataset.preset);
+        refresh();
+      });
     });
     var s = cur ? E.SCENARIOS.filter(function (x) { return x.id === cur; })[0] : null;
     var added = P.deals.filter(function (d) { return d.custom && d.on; }).length;
@@ -924,7 +930,7 @@ input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-
     setText('t-rw-n', ok ? from + ' → ' + (out || 'Self-sustaining') + (a.runwayAtHit !== Infinity ? ' · ' + E.monthsToDays(a.runwayAtHit) + ' days' : '') : '');
     setText('t-out', out || 'Self-sustaining');
     document.getElementById('t-out').style.color = a.runout !== null && a.runout < 12 ? 'var(--rs)' : 'var(--text)';
-    setText('t-out-n', a.runout !== null ? months(a.runout) + ' (' + E.monthsToDays(a.runout) + ' days) from Oct \'26 month-end' : '');
+    setText('t-out-n', a.runout !== null ? months(a.runout) + ' (' + E.monthsToDays(a.runout) + ' days) from today' : '');
   }
 
   // ── Today strip: fixed starting position (does not move with the switches) ──
